@@ -54,3 +54,5 @@ coverage/
 test-driver
 nbproject/
 tags
+
+build/
