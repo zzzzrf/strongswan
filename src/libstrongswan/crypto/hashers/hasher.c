@@ -28,7 +28,9 @@ ENUM_BEGIN(hash_algorithm_names, HASH_SHA1, HASH_IDENTITY,
 	"HASH_SHA2_384",
 	"HASH_SHA2_512",
 	"HASH_IDENTITY");
-ENUM_NEXT(hash_algorithm_names, HASH_UNKNOWN, HASH_SHA3_512, HASH_IDENTITY,
+ENUM_NEXT(hash_algorithm_names, HASH_SM3, HASH_SM3, HASH_IDENTITY,
+	"HASH_SM3");
+ENUM_NEXT(hash_algorithm_names, HASH_UNKNOWN, HASH_SHA3_512, HASH_SM3,
 	"HASH_UNKNOWN",
 	"HASH_MD2",
 	"HASH_MD4",
@@ -46,7 +48,9 @@ ENUM_BEGIN(hash_algorithm_short_names, HASH_SHA1, HASH_IDENTITY,
 	"sha384",
 	"sha512",
 	"identity");
-ENUM_NEXT(hash_algorithm_short_names, HASH_UNKNOWN, HASH_SHA3_512, HASH_IDENTITY,
+ENUM_NEXT(hash_algorithm_short_names, HASH_SM3, HASH_SM3, HASH_IDENTITY,
+	"sm3");
+ENUM_NEXT(hash_algorithm_short_names, HASH_UNKNOWN, HASH_SHA3_512, HASH_SM3,
 	"unknown",
 	"md2",
 	"md4",
@@ -107,6 +111,8 @@ size_t hasher_hash_size(hash_algorithm_t alg)
 			return HASH_SIZE_SHA384;
 		case HASH_SHA3_512:
 			return HASH_SIZE_SHA512;
+		case HASH_SM3:
+			return HASH_SIZE_SM3;
 		case HASH_IDENTITY:
 		case HASH_UNKNOWN:
 			break;
@@ -181,6 +187,8 @@ hash_algorithm_t hasher_algorithm_from_prf(pseudo_random_function_t alg)
 			return HASH_SHA384;
 		case PRF_HMAC_SHA2_512:
 			return HASH_SHA512;
+		case PRF_HMAC_SM3:
+			return HASH_SM3;
 		case PRF_HMAC_TIGER:
 		case PRF_AES128_XCBC:
 		case PRF_AES128_CMAC:
@@ -228,6 +236,8 @@ hash_algorithm_t hasher_algorithm_from_integrity(integrity_algorithm_t alg,
 			case AUTH_HMAC_SHA2_512_512:
 				*length = 64;
 				break;
+			case AUTH_HMAC_SM3:
+				*length = 32;
 			default:
 				break;
 		}
@@ -252,6 +262,8 @@ hash_algorithm_t hasher_algorithm_from_integrity(integrity_algorithm_t alg,
 		case AUTH_HMAC_SHA2_512_256:
 		case AUTH_HMAC_SHA2_512_512:
 			return HASH_SHA512;
+		case AUTH_HMAC_SM3:
+			return HASH_SM3;
 		case AUTH_AES_CMAC_96:
 		case AUTH_AES_128_GMAC:
 		case AUTH_AES_192_GMAC:
@@ -323,6 +335,8 @@ integrity_algorithm_t hasher_algorithm_to_integrity(hash_algorithm_t alg,
 					return AUTH_HMAC_SHA2_512_512;
 			}
 			break;
+		case HASH_SM3:
+			return AUTH_HMAC_SM3;
 		case HASH_MD2:
 		case HASH_MD4:
 		case HASH_SHA224:
@@ -348,6 +362,7 @@ bool hasher_algorithm_for_ikev2(hash_algorithm_t alg)
 		case HASH_SHA256:
 		case HASH_SHA384:
 		case HASH_SHA512:
+		case HASH_SM3:
 			return TRUE;
 		case HASH_UNKNOWN:
 		case HASH_MD2:

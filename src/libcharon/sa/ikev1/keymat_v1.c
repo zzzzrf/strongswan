@@ -267,6 +267,8 @@ static uint16_t auth_to_prf(uint16_t alg)
 			return PRF_HMAC_MD5;
 		case AUTH_AES_XCBC_96:
 			return PRF_AES128_XCBC;
+		case AUTH_HMAC_SM3:
+			return PRF_HMAC_SM3;
 		default:
 			return PRF_UNDEFINED;
 	}
@@ -289,6 +291,8 @@ static uint16_t auth_to_hash(uint16_t alg)
 			return HASH_SHA512;
 		case AUTH_HMAC_MD5_96:
 			return HASH_MD5;
+		case AUTH_HMAC_SM3:
+			return HASH_SM3;
 		default:
 			return HASH_UNKNOWN;
 	}

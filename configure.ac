@@ -157,6 +157,7 @@ ARG_ENABL_SET([newhope],        [enable New Hope crypto plugin.])
 ARG_DISBL_SET([nonce],          [disable nonce generation plugin.])
 ARG_ENABL_SET([ntru],           [enables the NTRU crypto plugin.])
 ARG_ENABL_SET([openssl],        [enables the OpenSSL crypto plugin.])
+ARG_ENABL_SET([gmssl],    	[enables the GmSSL crypto plugin.])
 ARG_ENABL_SET([wolfssl],        [enables the wolfSSL crypto plugin.])
 ARG_ENABL_SET([padlock],        [enables VIA Padlock crypto plugin.])
 ARG_DISBL_SET([random],         [disable RNG implementation on top of /dev/(u)random.])
@@ -1180,6 +1181,16 @@ if test x$openssl = xtrue; then
 	AC_CHECK_HEADER([openssl/evp.h],,[AC_MSG_ERROR([OpenSSL header openssl/evp.h not found!])])
 fi
 
+if test x$gmssl = xtrue; then
+	if test -z "$gmssl_lib"; then
+		gmssl_lib=crypto
+		AC_CHECK_LIB([$gmssl_lib],[EVP_CIPHER_CTX_new],[LIBS="$LIBS"],
+			[AC_MSG_ERROR([GmSSL lib$gmssl_lib not found])],[$DLLIB])
+	fi
+	AC_SUBST(GMSSL_LIB, [-l$gmssl_lib])
+	AC_CHECK_HEADER([openssl/evp.h],,[AC_MSG_ERROR([GmSSL header openssl/evp.h not found!])])
+fi
+
 if test x$wolfssl = xtrue; then
 	PKG_CHECK_MODULES(wolfssl, [wolfssl])
 	AC_SUBST(wolfssl_CFLAGS)
@@ -1558,6 +1569,7 @@ ADD_PLUGIN([ipseckey],             [c charon])
 ADD_PLUGIN([pem],                  [s charon pki scripts manager medsrv attest nm cmd aikgen fuzz])
 ADD_PLUGIN([padlock],              [s charon])
 ADD_PLUGIN([openssl],              [s charon pki scripts manager medsrv attest nm cmd aikgen])
+ADD_PLUGIN([gmssl],       	   [s charon pki scripts manager medsrv attest nm cmd aikgen])
 ADD_PLUGIN([wolfssl],              [s charon pki scripts manager medsrv attest nm cmd aikgen])
 ADD_PLUGIN([gcrypt],               [s charon pki scripts manager medsrv attest nm cmd aikgen])
 ADD_PLUGIN([botan],                [s charon pki scripts manager medsrv attest nm cmd aikgen])
@@ -1732,6 +1744,7 @@ AM_CONDITIONAL(USE_MYSQL, test x$mysql = xtrue)
 AM_CONDITIONAL(USE_SQLITE, test x$sqlite = xtrue)
 AM_CONDITIONAL(USE_PADLOCK, test x$padlock = xtrue)
 AM_CONDITIONAL(USE_OPENSSL, test x$openssl = xtrue)
+AM_CONDITIONAL(USE_GMSSL, test x$gmssl = xtrue)
 AM_CONDITIONAL(USE_WOLFSSL, test x$wolfssl = xtrue)
 AM_CONDITIONAL(USE_GCRYPT, test x$gcrypt = xtrue)
 AM_CONDITIONAL(USE_BOTAN, test x$botan = xtrue)
@@ -2014,6 +2027,7 @@ AC_CONFIG_FILES([
 	src/libstrongswan/plugins/sqlite/Makefile
 	src/libstrongswan/plugins/padlock/Makefile
 	src/libstrongswan/plugins/openssl/Makefile
+	src/libstrongswan/plugins/gmssl/Makefile
 	src/libstrongswan/plugins/wolfssl/Makefile
 	src/libstrongswan/plugins/gcrypt/Makefile
 	src/libstrongswan/plugins/botan/Makefile

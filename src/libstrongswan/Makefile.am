@@ -577,6 +577,13 @@ if MONOLITHIC
 endif
 endif
 
+if USE_GMSSL
+  SUBDIRS += plugins/gmssl
+if MONOLITHIC
+  libstrongswan_la_LIBADD += plugins/gmssl/libstrongswan-gmssl.la
+endif
+endif
+
 if USE_WOLFSSL
   SUBDIRS += plugins/wolfssl
 if MONOLITHIC
