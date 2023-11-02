@@ -70,7 +70,7 @@ plugin_t *gmssl_plugin_create()
 		},
 	);
 
-	lib->proposal->register_token(lib->proposal, "sm4", ENCRYPTION_ALGORITHM, ENCR_SM4_CBC, 128);
+	lib->proposal->register_token(lib->proposal, "sm4", ENCRYPTION_ALGORITHM, ENCR_SM4_CBC, 0);
 	lib->proposal->register_token(lib->proposal, "sm3", INTEGRITY_ALGORITHM, AUTH_HMAC_SM3, 0);
 
 	return &this->public.plugin;
