@@ -4,7 +4,7 @@
 build_botan()
 {
 	# same revision used in the build recipe of the testing environment
-	BOTAN_REV=3.1.1
+	BOTAN_REV=3.2.0
 	BOTAN_DIR=$DEPS_BUILD_DIR/botan
 
 	if test -d "$BOTAN_DIR"; then
@@ -37,7 +37,7 @@ build_botan()
 
 build_wolfssl()
 {
-	WOLFSSL_REV=v5.6.3-stable
+	WOLFSSL_REV=v5.6.4-stable
 	WOLFSSL_DIR=$DEPS_BUILD_DIR/wolfssl
 
 	if test -d "$WOLFSSL_DIR"; then
