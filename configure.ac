@@ -329,6 +329,7 @@ ARG_ENABL_SET([selinux],        [enable SELinux support for labeled IPsec.])
 ARG_ENABL_SET([tss-trousers],   [enable the use of the TrouSerS Trusted Software Stack])
 ARG_ENABL_SET([tss-tss2],       [enable the use of the TSS 2.0 Trusted Software Stack])
 ARG_ENABL_SET([cert-enroll-timer],[enable installation of cert-enroll as a systemd timer.])
+ARG_ENABL_SET([custom_ext],		[enable custom extension])
 
 # compile options
 ARG_ENABL_SET([asan],           [enable build with AddressSanitizer (ASan).])
@@ -1924,6 +1925,7 @@ AM_CONDITIONAL(USE_PYTHON_EGGS, test x$python_eggs = xtrue)
 AM_CONDITIONAL(USE_PERL_CPAN, test x$perl_cpan = xtrue)
 AM_CONDITIONAL(USE_TOX, test "x$TOX" != x)
 AM_CONDITIONAL(USE_PY_TEST, test "x$PY_TEST" != x -a "x$TOX" = x)
+AM_CONDITIONAL(USE_CUSTOM_EXT, test x$custom_ext = xtrue)
 
 # ========================
 #  set global definitions
@@ -1955,6 +1957,9 @@ if test x$fuzzing = xtrue; then
 fi
 if test x$imc_swima = xtrue -o x$imv_swima = xtrue; then
 	AC_DEFINE([USE_JSON], [], [build code for JSON])
+fi
+if test x$custom_ext = xtrue; then
+	AC_DEFINE([USE_CUSTOM_EXT], [], [build code for custom extension])
 fi
 
 # ====================================================
