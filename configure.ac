@@ -20,7 +20,7 @@
 #  initialize & set some vars
 # ============================
 
-AC_INIT([strongSwan],[5.9.12])
+AC_INIT([strongSwan],[5.9.14])
 AM_INIT_AUTOMAKE(m4_esyscmd([
 	echo tar-ustar
 	echo subdir-objects
@@ -517,7 +517,7 @@ if test x$gmp = xtrue -o x$ntru = xtrue -o x$bliss = xtrue; then
 	mgf1=true
 fi
 
-if test x$stroke = xtrue; then
+if test x$stroke = xtrue -o x$vici = xtrue; then
 	counters=true
 fi
 
@@ -715,6 +715,11 @@ AC_CHECK_HEADERS([netinet/ip6.h linux/fib_rules.h], [], [],
 	#include <sys/types.h>
 	#include <netinet/in.h>
 ])
+AC_CHECK_HEADERS([linux/vm_sockets.h], [have_vm_sockets=true], [],
+[
+	#include <sys/socket.h>
+])
+AM_CONDITIONAL(USE_VM_SOCKETS, [test "x$have_vm_sockets" = xtrue])
 
 AC_CHECK_MEMBERS([struct sockaddr.sa_len], [], [],
 [
@@ -1565,7 +1570,7 @@ ADD_PLUGIN([random],               [s charon pki scripts manager medsrv attest n
 ADD_PLUGIN([nonce],                [s charon nm cmd aikgen])
 ADD_PLUGIN([x509],                 [s charon pki scripts attest nm cmd aikgen fuzz])
 ADD_PLUGIN([revocation],           [s charon pki nm cmd])
-ADD_PLUGIN([constraints],          [s charon nm cmd])
+ADD_PLUGIN([constraints],          [s charon pki nm cmd])
 ADD_PLUGIN([acert],                [s charon])
 ADD_PLUGIN([pubkey],               [s charon pki cmd aikgen])
 ADD_PLUGIN([pkcs1],                [s charon pki scripts manager medsrv attest nm cmd aikgen fuzz])
@@ -1867,6 +1872,7 @@ AM_CONDITIONAL(USE_ATTR, test x$attr = xtrue)
 AM_CONDITIONAL(USE_ATTR_SQL, test x$attr_sql = xtrue)
 AM_CONDITIONAL(USE_COUNTERS, test x$counters = xtrue)
 AM_CONDITIONAL(USE_SELINUX, test x$selinux = xtrue)
+AM_CONDITIONAL(USE_PF_HANDLER, test x$dhcp = xtrue -o x$farp = xtrue)
 
 #  other options
 # ---------------
