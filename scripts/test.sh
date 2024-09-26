@@ -37,7 +37,7 @@ build_botan()
 
 build_wolfssl()
 {
-	WOLFSSL_REV=v5.7.0-stable
+	WOLFSSL_REV=v5.7.2-stable
 	WOLFSSL_DIR=$DEPS_BUILD_DIR/wolfssl
 
 	if test -d "$WOLFSSL_DIR"; then
@@ -127,7 +127,7 @@ build_openssl()
 
 build_awslc()
 {
-	LC_REV=1.28.0
+	LC_REV=1.35.0
 	LC_PKG=aws-lc-$LC_REV
 	LC_DIR=$DEPS_BUILD_DIR/$LC_PKG
 	LC_SRC=https://github.com/aws/aws-lc/archive/refs/tags/v${LC_REV}.tar.gz
@@ -467,8 +467,8 @@ case "$1" in
 deps)
 	case "$OS_NAME" in
 	linux)
-		sudo apt-get update -qq && \
-		sudo apt-get install -qq bison flex gperf gettext $DEPS
+		sudo apt-get update -y && \
+		sudo apt-get install -y bison flex gperf gettext $DEPS
 		;;
 	alpine)
 		apk add --no-cache build-base automake autoconf libtool pkgconfig && \
