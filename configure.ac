@@ -330,6 +330,7 @@ ARG_ENABL_SET([tss-trousers],   [enable the use of the TrouSerS Trusted Software
 ARG_ENABL_SET([tss-tss2],       [enable the use of the TSS 2.0 Trusted Software Stack])
 ARG_ENABL_SET([cert-enroll-timer],[enable installation of cert-enroll as a systemd timer.])
 ARG_ENABL_SET([custom_ext],		[enable custom extension])
+ARG_ENABL_SET([custom_ext_ATTR_IKEv1_SM],		[enable custom extension for Ikev1 SM])
 
 # compile options
 ARG_ENABL_SET([asan],           [enable build with AddressSanitizer (ASan).])
@@ -372,7 +373,7 @@ fi
 # ===========================
 
 if test -z "$CFLAGS"; then
-	CFLAGS="-g -O2"
+	CFLAGS="-g -O0"
 fi
 AC_SUBST(PLUGIN_CFLAGS)
 AC_PROG_CC
@@ -1932,6 +1933,7 @@ AM_CONDITIONAL(USE_PERL_CPAN, test x$perl_cpan = xtrue)
 AM_CONDITIONAL(USE_TOX, test "x$TOX" != x)
 AM_CONDITIONAL(USE_PY_TEST, test "x$PY_TEST" != x -a "x$TOX" = x)
 AM_CONDITIONAL(USE_CUSTOM_EXT, test x$custom_ext = xtrue)
+AM_CONDITIONAL(USE_CUSTOM_EXT_ATTR_IKEV1_SM, test x$custom_ext_ATTR_IKEv1_SM = xtrue)
 
 # ========================
 #  set global definitions
@@ -1966,6 +1968,9 @@ if test x$imc_swima = xtrue -o x$imv_swima = xtrue; then
 fi
 if test x$custom_ext = xtrue; then
 	AC_DEFINE([USE_CUSTOM_EXT], [], [build code for custom extension])
+fi
+if test x$custom_ext_ATTR_IKEv1_SM = xtrue; then
+	AC_DEFINE([USE_CUSTOM_EXT_ATTR_IKEV1_SM], [], [build code for custom extension attr ikev1 sm])
 fi
 
 # ====================================================
