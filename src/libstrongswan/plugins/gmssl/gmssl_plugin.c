@@ -7,6 +7,8 @@
 #include "gmssl_hasher.h"
 #include "gmssl_crypter.h"
 #include "gmssl_hmac.h"
+#include "gmssl_sm2_public_key.h"
+#include "gmssl_sm2_private_key.h"
 
 typedef struct private_gmssl_plugin_t private_gmssl_plugin_t;
 
@@ -42,6 +44,21 @@ METHOD(plugin_t, get_features, int,
 			
 		PLUGIN_REGISTER(SIGNER, gmssl_hmac_signer_create),
 			PLUGIN_PROVIDE(SIGNER, AUTH_HMAC_SM3),
+
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		PLUGIN_REGISTER(PRIVKEY, sm2_private_key_load, TRUE),
+			PLUGIN_PROVIDE(PRIVKEY, KEY_SM2),
+		PLUGIN_REGISTER(PRIVKEY_GEN, sm2_private_key_gen, FALSE),
+			PLUGIN_PROVIDE(PRIVKEY_GEN, KEY_SM2),
+		PLUGIN_REGISTER(PUBKEY, sm2_public_key_load, TRUE),
+			PLUGIN_PROVIDE(PUBKEY, KEY_SM2),
+		PLUGIN_REGISTER(PUBKEY, sm2_public_key_load, TRUE),
+			PLUGIN_PROVIDE(PUBKEY, KEY_ECDSA),
+		PLUGIN_PROVIDE(PRIVKEY_SIGN, SIGN_SM2_WITH_SM3),
+			PLUGIN_DEPENDS(HASHER, HASH_SM3),
+		PLUGIN_PROVIDE(PUBKEY_VERIFY, SIGN_SM2_WITH_SM3),
+			PLUGIN_DEPENDS(HASHER, HASH_SM3),
+#endif
 	};
 	*features = f;
 	return countof(f);
@@ -70,7 +87,7 @@ plugin_t *gmssl_plugin_create()
 		},
 	);
 
-	lib->proposal->register_token(lib->proposal, "sm4", ENCRYPTION_ALGORITHM, ENCR_SM4_CBC, 0);
+	lib->proposal->register_token(lib->proposal, "sm4", ENCRYPTION_ALGORITHM, ENCR_SM4_CBC, 16 * 8);
 	lib->proposal->register_token(lib->proposal, "sm3", INTEGRITY_ALGORITHM, AUTH_HMAC_SM3, 0);
 
 	return &this->public.plugin;

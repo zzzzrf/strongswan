@@ -161,12 +161,47 @@ static void build_certs(private_isakmp_cert_post_t *this, message_t *message)
 	}
 }
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+static status_t send_sm2_certs(private_isakmp_cert_post_t *this, message_t *message)
+{
+	cert_payload_t *payload;
+	auth_cfg_t *auth_local = this->ike_sa->get_auth_cfg(this->ike_sa, TRUE);
+	chunk_t cert_e_encoding = chunk_empty;
+	chunk_t cert_s_encoding = chunk_empty;
+
+	certificate_t *cert_e = auth_local->get(auth_local, AUTH_HELPER_SM_ENC_CERT);
+	certificate_t *cert_s = auth_local->get(auth_local, AUTH_HELPER_SM_SIG_CERT);
+
+	cert_s->get_encoding(cert_s, CERT_ASN1_DER, &cert_s_encoding);
+	cert_e->get_encoding(cert_e, CERT_ASN1_DER, &cert_e_encoding);
+	payload = cert_payload_create_custom(PLV1_CERTIFICATE, ENC_X509_SIGNATURE, cert_s_encoding);
+	DBG1(DBG_IKE, "add end entity sig cert \"%Y\"",
+			cert_s->get_subject(cert_s));
+	message->add_payload(message, (payload_t*)payload);
+
+	payload = cert_payload_create_custom(PLV1_CERTIFICATE, ENC_X509_KEY_EXCHANGE, cert_e_encoding);
+	DBG1(DBG_IKE, "add end entity enc cert \"%Y\"",
+			cert_e->get_subject(cert_e));
+	message->add_payload(message, (payload_t*)payload);
+
+	return SUCCESS;
+}
+#endif
+
 METHOD(task_t, build_i, status_t,
 	private_isakmp_cert_post_t *this, message_t *message)
 {
 	switch (message->get_exchange_type(message))
 	{
 		case ID_PROT:
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			if (message->get_major_version(message) == IKEV1_MAJOR_VERSION &&
+				message->get_minor_version(message) == IKEV1_SM_MINOR_VERSION)
+			{
+				if (this->state == CR_KE)
+					send_sm2_certs(this, message);
+			}
+#endif
 			if (this->state == CR_AUTH)
 			{
 				build_certs(this, message);
@@ -238,6 +273,11 @@ METHOD(task_t, build_r, status_t,
 			switch (this->state)
 			{
 				case CR_SA:
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+				if (message->get_major_version(message) == IKEV1_MAJOR_VERSION &&
+						message->get_minor_version(message) == IKEV1_SM_MINOR_VERSION)
+					send_sm2_certs(this, message);
+#endif
 					this->state = CR_KE;
 					return NEED_MORE;
 				case CR_KE:

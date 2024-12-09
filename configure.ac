@@ -1199,12 +1199,12 @@ fi
 
 if test x$gmssl = xtrue; then
 	if test -z "$gmssl_lib"; then
-		gmssl_lib=crypto
-		AC_CHECK_LIB([$gmssl_lib],[EVP_CIPHER_CTX_new],[LIBS="$LIBS"],
+		gmssl_lib=gmssl
+		AC_CHECK_LIB([$gmssl_lib],[sm2_key_generate],[LIBS="$LIBS"],
 			[AC_MSG_ERROR([GmSSL lib$gmssl_lib not found])],[$DLLIB])
 	fi
 	AC_SUBST(GMSSL_LIB, [-l$gmssl_lib])
-	AC_CHECK_HEADER([openssl/evp.h],,[AC_MSG_ERROR([GmSSL header openssl/evp.h not found!])])
+	AC_CHECK_HEADER([gmssl/sm2.h],,[AC_MSG_ERROR([GmSSL header gmssl/sm2 not found!])])
 fi
 
 if test x$wolfssl = xtrue; then

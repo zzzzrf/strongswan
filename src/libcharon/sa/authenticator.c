@@ -18,6 +18,9 @@
 #include <string.h>
 
 #include "authenticator.h"
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+#include "sa/ikev1/authenticators/sm_v1_authenticator.h"
+#endif
 
 #include <sa/ikev2/authenticators/pubkey_authenticator.h>
 #include <sa/ikev2/authenticators/psk_authenticator.h>
@@ -139,8 +142,16 @@ authenticator_t *authenticator_create_v1(ike_sa_t *ike_sa, bool initiator,
 			return (authenticator_t*)pubkey_v1_authenticator_create(ike_sa,
 										initiator, dh, dh_value, sa_payload,
 										id_payload, KEY_RSA);
-		case AUTH_ECDSA_256:
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		/* sm auth == 10 */
 		case AUTH_ECDSA_384:
+			return (authenticator_t*)sm_v1_authenticator_create(ike_sa,
+										initiator, sa_payload, id_payload);
+#endif
+		case AUTH_ECDSA_256:
+#if !(defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM))
+		case AUTH_ECDSA_384:
+#endif
 		case AUTH_ECDSA_521:
 			return (authenticator_t*)pubkey_v1_authenticator_create(ike_sa,
 										initiator, dh, dh_value, sa_payload,

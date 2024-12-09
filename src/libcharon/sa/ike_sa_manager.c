@@ -1251,6 +1251,10 @@ METHOD(ike_sa_manager_t, create_new, ike_sa_t*,
 	uint64_t spi;
 
 	ike_version = version == IKEV1 ? IKEV1_MAJOR_VERSION : IKEV2_MAJOR_VERSION;
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	if (version == IKEV1_SM)
+		ike_version = IKEV1_SM;
+#endif
 
 	spi = get_spi(this);
 	if (!spi)
@@ -1348,6 +1352,10 @@ METHOD(ike_sa_manager_t, checkout_by_message, ike_sa_t*,
 		if (message->get_message_id(message) == 0)
 		{
 			ike_version = IKEV1;
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			if (message->get_minor_version(message) == IKEV1_SM_MINOR_VERSION)
+				ike_version = IKEV1_SM;
+#endif
 			is_init = TRUE;
 			if (id->is_initiator(id))
 			{	/* not set in IKEv1, switch back before applying to new SA */

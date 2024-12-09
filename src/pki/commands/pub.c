@@ -80,6 +80,13 @@ static int pub()
 					type = CRED_CERTIFICATE;
 					subtype = CERT_X509;
 				}
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+				else if (streq(arg, "sm2"))
+				{
+					type = CRED_PRIVATE_KEY;
+					subtype = KEY_SM2;
+				}
+#endif
 				else
 				{
 					return command_usage("invalid input type");

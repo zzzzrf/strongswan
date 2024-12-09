@@ -1337,6 +1337,13 @@ static void set_from_proposal_v1_ike(private_proposal_substructure_t *this,
 	}
 	enumerator->destroy(enumerator);
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	/* SM */
+	if (method == AUTH_ECDSA_384)
+		transform->add_transform_attribute(transform,
+			transform_attribute_create_value(PLV1_TRANSFORM_ATTRIBUTE,
+							TATTR_PH1_ASYMMETRIC_CRYPTO_ALGORITHM, 20));
+#endif
 	enumerator = proposal->create_enumerator(proposal, KEY_EXCHANGE_METHOD);
 	if (enumerator->enumerate(enumerator, &alg, &key_size))
 	{

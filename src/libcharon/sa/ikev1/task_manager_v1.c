@@ -447,6 +447,9 @@ METHOD(task_manager_t, initiate, status_t,
 	host_t *me, *other;
 	exchange_type_t exchange = EXCHANGE_TYPE_UNDEFINED;
 	bool new_mid = FALSE, expect_response = FALSE, canceled = FALSE, keep = FALSE;
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	ike_sa_t *ike_sa = this->ike_sa;
+#endif
 
 	if (this->initiating.type != EXCHANGE_TYPE_UNDEFINED &&
 		this->initiating.type != INFORMATIONAL_V1)
@@ -603,7 +606,15 @@ METHOD(task_manager_t, initiate, status_t,
 			return DESTROY_ME;
 		}
 	}
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	ike_sa->get_version(ike_sa);
+	if (IKEV1_SM == ike_sa->get_version(ike_sa))
+		message = message_create(IKEV1_MAJOR_VERSION, IKEV1_SM_MINOR_VERSION);
+	else 
+		message = message_create(IKEV1_MAJOR_VERSION, IKEV1_MINOR_VERSION);
+#else
 	message = message_create(IKEV1_MAJOR_VERSION, IKEV1_MINOR_VERSION);
+#endif
 	message->set_message_id(message, this->initiating.mid);
 	message->set_source(message, me->clone(me));
 	message->set_destination(message, other->clone(other));
@@ -714,11 +725,21 @@ static status_t build_response(private_task_manager_t *this, message_t *request)
 	message_t *message;
 	host_t *me, *other;
 	bool delete = FALSE, canceled = FALSE, expect_request = FALSE;
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	int minor_version = IKEV1_MINOR_VERSION; 
+#endif
 
 	me = request->get_destination(request);
 	other = request->get_source(request);
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	if (this->ike_sa->get_version(this->ike_sa) == IKEV1_SM)
+		minor_version = IKEV1_SM_MINOR_VERSION;
+	
+	message = message_create(IKEV1_MAJOR_VERSION, minor_version);
+#else
 	message = message_create(IKEV1_MAJOR_VERSION, IKEV1_MINOR_VERSION);
+#endif
 	message->set_exchange_type(message, request->get_exchange_type(request));
 	/* send response along the path the request came in */
 	message->set_source(message, me->clone(me));
@@ -1323,6 +1344,9 @@ METHOD(task_manager_t, process_message, status_t,
 	uint32_t hash, mid, i;
 	host_t *me, *other;
 	status_t status;
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	ike_version_t ike_version = IKEV1;
+#endif
 
 	/* TODO-IKEv1: update hosts more selectively */
 	me = msg->get_destination(msg);
@@ -1467,8 +1491,16 @@ METHOD(task_manager_t, process_message, status_t,
 			ike_cfg_t *ike_cfg;
 			job_t *job;
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			if (msg->get_minor_version(msg) == IKEV1_SM_MINOR_VERSION)
+				ike_version = IKEV1_SM;
+
+			ike_cfg = charon->backends->get_ike_cfg(charon->backends,
+													me, other, ike_version);
+#else
 			ike_cfg = charon->backends->get_ike_cfg(charon->backends,
 													me, other, IKEV1);
+#endif
 			if (ike_cfg == NULL)
 			{
 				/* no config found for these hosts, destroy */

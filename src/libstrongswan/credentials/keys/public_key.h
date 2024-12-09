@@ -50,6 +50,9 @@ enum key_type_t {
 	KEY_ED448   = 5,
 	/** BLISS */
 	KEY_BLISS = 6,
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	KEY_SM2 = 7,
+#endif
 };
 
 /**
@@ -123,6 +126,10 @@ enum signature_scheme_t {
 	SIGN_BLISS_WITH_SHA3_384,
 	/** BLISS with SHA-3_512                                           */
 	SIGN_BLISS_WITH_SHA3_512,
+	
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	SIGN_SM2_WITH_SM3,
+#endif
 };
 
 /**

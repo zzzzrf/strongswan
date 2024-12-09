@@ -510,6 +510,10 @@ int hasher_signature_algorithm_to_oid(hash_algorithm_t alg, key_type_t key)
 				default:
 					return OID_UNKNOWN;
 			}
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		case KEY_SM2:
+			return OID_SM2_WITH_SM3;
+#endif
 		default:
 			return OID_UNKNOWN;
 	}
@@ -570,6 +574,10 @@ hash_algorithm_t hasher_from_signature_scheme(signature_scheme_t scheme,
 		case SIGN_RSA_EMSA_PKCS1_SHA3_512:
 		case SIGN_BLISS_WITH_SHA3_512:
 			return HASH_SHA3_512;
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		case SIGN_SM2_WITH_SM3:
+			return HASH_SM3;
+#endif
 	}
 	return HASH_UNKNOWN;
 }

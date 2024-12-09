@@ -742,6 +742,9 @@ static void parse_keyUsage(chunk_t blob, private_x509_cert_t *this)
 							this->flags |= X509_CRL_SIGN;
 							break;
 						case KU_DIGITAL_SIGNATURE:
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+							this->flags |= X509_SM_CERT_SIG;
+#endif
 						case KU_NON_REPUDIATION:
 							this->flags |= X509_IKE_COMPLIANT;
 							break;
@@ -749,6 +752,9 @@ static void parse_keyUsage(chunk_t blob, private_x509_cert_t *this)
 							/* we use the caBasicConstraint, MUST be set */
 						case KU_KEY_ENCIPHERMENT:
 						case KU_DATA_ENCIPHERMENT:
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+							this->flags |= X509_SM_CERT_ENC;
+#endif
 						case KU_KEY_AGREEMENT:
 						case KU_ENCIPHER_ONLY:
 						case KU_DECIPHER_ONLY:
@@ -2275,6 +2281,9 @@ static bool generate(private_x509_cert_t *cert, certificate_t *sign_cert,
 {
 	const chunk_t keyUsageCrlSign = chunk_from_chars(0x01, 0x02);
 	const chunk_t keyUsageCertSignCrlSign = chunk_from_chars(0x01, 0x06);
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	const chunk_t keyUsageEncSig = chunk_from_chars(0x01, 0xf8);
+#endif
 	chunk_t extensions = chunk_empty, certPolicies = chunk_empty;
 	chunk_t basicConstraints = chunk_empty, nameConstraints = chunk_empty;
 	chunk_t keyUsage = chunk_empty, keyUsageBits = chunk_empty;
@@ -2397,6 +2406,12 @@ static bool generate(private_x509_cert_t *cert, certificate_t *sign_cert,
 	{
 		keyUsageBits = keyUsageCrlSign;
 	}
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	else if (cert->flags & (X509_SM_CERT_ENC | X509_SM_CERT_SIG))
+	{
+		keyUsageBits = keyUsageEncSig;
+	}
+#endif
 	if (keyUsageBits.len)
 	{
 		keyUsage = asn1_wrap(ASN1_SEQUENCE, "mmm",

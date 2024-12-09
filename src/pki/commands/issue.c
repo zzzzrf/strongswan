@@ -84,6 +84,12 @@ static void parse_flag(char *arg, x509_flag_t *flags)
 	{
 		*flags |= X509_MS_SMARTCARD_LOGON;
 	}
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	else if (streq(arg, "sm2_enc_sig"))
+	{
+		*flags |= (X509_SM_CERT_ENC | X509_SM_CERT_SIG);
+	}
+#endif
 }
 
 /**

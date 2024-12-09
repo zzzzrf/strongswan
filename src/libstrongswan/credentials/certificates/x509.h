@@ -66,6 +66,11 @@ enum x509_flag_t {
 	/** cert either lacks keyUsage bits, or includes either digitalSignature
 	 *  or nonRepudiation as per RFC 4945, section 5.1.3.2. */
 	X509_IKE_COMPLIANT =      (1<<10),
+
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	X509_SM_CERT_ENC =		(1<<11),
+	X509_SM_CERT_SIG =		(1<<12),
+#endif
 };
 
 extern enum_name_t *x509_flag_names;

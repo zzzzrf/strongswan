@@ -50,6 +50,10 @@ enum transform_attribute_type_t {
 	TATTR_PH1_KEY_LENGTH = 14,
 	TATTR_PH1_FIELD_SIZE = 15,
 	TATTR_PH1_GROUP_ORDER = 16,
+
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	TATTR_PH1_ASYMMETRIC_CRYPTO_ALGORITHM = 20,
+#endif
 	/** IKEv1 Phase 2 attributes */
 	TATTR_PH2_SA_LIFE_TYPE = 1,
 	TATTR_PH2_SA_LIFE_DURATION = 2,

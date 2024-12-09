@@ -410,6 +410,12 @@ static void log_auth(auth_cfg_t *auth)
 			case AUTH_RULE_CA_CERT:
 				DBG2(DBG_CFG, "   cacert = %Y", v.cert->get_subject(v.cert));
 				break;
+			case AUTH_HELPER_SM_ENC_CERT:
+				DBG2(DBG_CFG, "   sm-enc = %Y", v.cert->get_subject(v.cert));
+				break;
+			case AUTH_HELPER_SM_SIG_CERT:
+				DBG2(DBG_CFG, "   sm-sign = %Y", v.cert->get_subject(v.cert));
+				break;
 			default:
 				break;
 		}
@@ -1360,6 +1366,9 @@ CALLBACK(parse_auth, bool,
 	if (strpfx(buf, "ike:") ||
 		strpfx(buf, "pubkey") ||
 		strpfx(buf, "rsa") ||
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		strpfx(buf, "sm2") ||
+#endif
 		strpfx(buf, "ecdsa") ||
 		strpfx(buf, "bliss"))
 	{
@@ -1939,6 +1948,10 @@ CALLBACK(auth_sn, bool,
 	char *name)
 {
 	if (strcasepfx(name, "cert") ||
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		strcasepfx(name, "sm2_enc_cert") ||
+		strcasepfx(name, "sm2_sig_cert") ||
+#endif
 		strcasepfx(name, "cacert"))
 	{
 		cert_data_t *data;
@@ -2005,6 +2018,13 @@ CALLBACK(auth_sn, bool,
 		}
 		rule = strcasepfx(name, "cert") ? AUTH_RULE_SUBJECT_CERT
 										: AUTH_RULE_CA_CERT;
+		
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		if (strcasepfx(name, "sm2_enc_cert"))
+			rule = AUTH_HELPER_SM_ENC_CERT;
+		else if (strcasepfx(name, "sm2_sig_cert"))
+			rule = AUTH_HELPER_SM_SIG_CERT;
+#endif
 		return add_cert(auth, rule, cert);
 	}
 	auth->request->reply = create_reply("invalid section: %s", name);
