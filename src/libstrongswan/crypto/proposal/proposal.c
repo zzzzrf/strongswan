@@ -739,7 +739,13 @@ static bool check_proposal(private_proposal_t *this)
 			}
 		}
 		e->destroy(e);
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		get_algorithm(this, ENCRYPTION_ALGORITHM, &alg, &ks);
+		if (alg != ENCR_SM4_CBC && 
+				!get_algorithm(this, KEY_EXCHANGE_METHOD, NULL, NULL))
+#else
 		if (!get_algorithm(this, KEY_EXCHANGE_METHOD, NULL, NULL))
+#endif
 		{
 			DBG1(DBG_CFG, "a DH group is mandatory in IKE proposals");
 			return FALSE;

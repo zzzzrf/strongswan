@@ -73,6 +73,11 @@ enum cred_encoding_type_t {
 	/** PGPv4 fingerprint */
 	KEYID_PGPV4,
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	KEYID_PUBKEY_SM3,
+	
+	KEYID_PUBKEY_INFO_SM3,
+#endif
 	KEYID_MAX,
 
 	/** PKCS#1 and similar ASN.1 key encoding */

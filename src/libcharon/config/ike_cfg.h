@@ -46,6 +46,10 @@ enum ike_version_t {
 	IKEV1 = 1,
 	/** IKE version 2 */
 	IKEV2 = 2,
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	/* IKEV1_MAJOR_VERSION | IKEV1_MINOR_SM_VERSION */
+	IKEV1_SM = 17,
+#endif
 };
 
 /**

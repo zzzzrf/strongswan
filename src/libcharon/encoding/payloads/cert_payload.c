@@ -214,6 +214,14 @@ METHOD(cert_payload_t, get_cert_encoding, cert_encoding_t,
 	return this->encoding;
 }
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+METHOD(cert_payload_t, get_encoding, chunk_t,
+	private_cert_payload_t *this)
+{
+	return chunk_cat("cc", chunk_from_thing(this->encoding), this->data);
+}
+#endif
+
 METHOD(cert_payload_t, get_cert, certificate_t*,
 	private_cert_payload_t *this)
 {
@@ -222,6 +230,9 @@ METHOD(cert_payload_t, get_cert, certificate_t*,
 	switch (this->encoding)
 	{
 		case ENC_X509_SIGNATURE:
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		case ENC_X509_KEY_EXCHANGE:
+#endif
 			type = CERT_X509;
 			break;
 		case ENC_X509_ATTRIBUTE:
@@ -314,6 +325,9 @@ cert_payload_t *cert_payload_create(payload_type_t type)
 			.get_cert = _get_cert,
 			.get_container = _get_container,
 			.get_cert_encoding = _get_cert_encoding,
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			.get_encoding = _get_encoding,
+#endif
 			.get_hash = _get_hash,
 			.get_url = _get_url,
 			.destroy = _destroy,

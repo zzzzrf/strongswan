@@ -309,6 +309,34 @@ METHOD(task_t, build_i, status_t,
 			{
 				return send_notify(this, NO_PROPOSAL_CHOSEN);
 			}
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			if (this->ike_sa->get_version(this->ike_sa) == IKEV1_SM)
+			{
+				if (!this->ph1->add_XCH_SIG(this->ph1, message, this->proposal))
+				{
+					DBG1(DBG_IKE, "adding XCH_SIG failed");
+					return send_notify(this, INVALID_KEY_INFORMATION);
+				}
+			}
+			else
+			{
+				if (!this->proposal->get_algorithm(this->proposal,
+											KEY_EXCHANGE_METHOD, &group, NULL))
+				{
+					DBG1(DBG_IKE, "DH group selection failed");
+					return send_notify(this, NO_PROPOSAL_CHOSEN);
+				}
+				if (!this->ph1->create_dh(this->ph1, group))
+				{
+					DBG1(DBG_IKE, "negotiated DH group not supported");
+					return send_notify(this, INVALID_KEY_INFORMATION);
+				}
+				if (!this->ph1->add_nonce_ke(this->ph1, message))
+				{
+					return send_notify(this, INVALID_KEY_INFORMATION);
+				}
+			}
+#else
 			if (!this->proposal->get_algorithm(this->proposal,
 										KEY_EXCHANGE_METHOD, &group, NULL))
 			{
@@ -324,6 +352,7 @@ METHOD(task_t, build_i, status_t,
 			{
 				return send_notify(this, INVALID_KEY_INFORMATION);
 			}
+#endif
 			this->state = MM_KE;
 			return NEED_MORE;
 		}
@@ -331,18 +360,41 @@ METHOD(task_t, build_i, status_t,
 		{
 			id_payload_t *id_payload;
 			identification_t *id;
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			chunk_t id_encoded = chunk_empty;
 
+			if (this->ike_sa->get_version(this->ike_sa) == IKEV1_SM)
+			{
+				id = this->ike_sa->get_my_id(this->ike_sa);
+				id_payload = id_payload_create_from_identification(PLV1_ID, id);
+				id_encoded = id_payload->get_encoded(id_payload);
+				DESTROY_IF(id_payload);
+			}
+			else
+			{
+				id = this->ike_sa->get_my_id(this->ike_sa);
+				id_payload = id_payload_create_from_identification(PLV1_ID, id);
+				id_encoded = id_payload->get_encoded(id_payload);
+				message->add_payload(message, &id_payload->payload_interface);
+			}
+			
+			if (!this->ph1->build_auth(this->ph1, this->method, message,
+									   id_encoded))
+			{
+				charon->bus->alert(charon->bus, ALERT_LOCAL_AUTH_FAILED);
+				return send_notify(this, AUTHENTICATION_FAILED);
+			}
+#else
 			id = this->ike_sa->get_my_id(this->ike_sa);
 			id_payload = id_payload_create_from_identification(PLV1_ID, id);
 			message->add_payload(message, &id_payload->payload_interface);
-
 			if (!this->ph1->build_auth(this->ph1, this->method, message,
 									   id_payload->get_encoded(id_payload)))
 			{
 				charon->bus->alert(charon->bus, ALERT_LOCAL_AUTH_FAILED);
 				return send_notify(this, AUTHENTICATION_FAILED);
 			}
-
+#endif
 			add_initial_contact(this, message, id);
 
 			this->state = MM_AUTH;
@@ -423,6 +475,34 @@ METHOD(task_t, process_r, status_t,
 			{
 				return send_notify(this, INVALID_KEY_INFORMATION);
 			}
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			if (this->ike_sa->get_version(this->ike_sa) == IKEV1_SM)
+			{
+				if (!this->ph1->get_XCH_SIG(this->ph1, message, this->proposal))
+				{
+					DBG1(DBG_IKE, "failed to get XCH SIG");
+					return send_notify(this, INVALID_KEY_INFORMATION);
+				}
+			}
+			else 
+			{
+				if (!this->proposal->get_algorithm(this->proposal,
+										KEY_EXCHANGE_METHOD, &group, NULL))
+				{
+					DBG1(DBG_IKE, "DH group selection failed");
+					return send_notify(this, INVALID_KEY_INFORMATION);
+				}
+				if (!this->ph1->create_dh(this->ph1, group))
+				{
+					DBG1(DBG_IKE, "negotiated DH group not supported");
+					return send_notify(this, INVALID_KEY_INFORMATION);
+				}
+				if (!this->ph1->get_nonce_ke(this->ph1, message))
+				{
+					return send_notify(this, INVALID_PAYLOAD_TYPE);
+				}
+			}
+#else
 			if (!this->proposal->get_algorithm(this->proposal,
 										KEY_EXCHANGE_METHOD, &group, NULL))
 			{
@@ -438,6 +518,7 @@ METHOD(task_t, process_r, status_t,
 			{
 				return send_notify(this, INVALID_PAYLOAD_TYPE);
 			}
+#endif
 			this->state = MM_KE;
 			return NEED_MORE;
 		}
@@ -445,7 +526,25 @@ METHOD(task_t, process_r, status_t,
 		{
 			id_payload_t *id_payload;
 			identification_t *id;
-
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			if (this->ike_sa->get_version(this->ike_sa) == IKEV1_SM)
+			{
+				id = this->ike_sa->get_other_id(this->ike_sa);
+				id_payload = id_payload_create_from_identification(PLV1_ID, id);
+			}
+			else
+			{
+				id_payload = (id_payload_t*)message->get_payload(message, PLV1_ID);
+				if (!id_payload)
+				{
+					DBG1(DBG_IKE, "IDii payload missing");
+					charon->bus->alert(charon->bus, ALERT_PEER_AUTH_FAILED);
+					return send_notify(this, INVALID_PAYLOAD_TYPE);
+				}
+				id = id_payload->get_identification(id_payload);
+				this->ike_sa->set_other_id(this->ike_sa, id);
+			}
+#else
 			id_payload = (id_payload_t*)message->get_payload(message, PLV1_ID);
 			if (!id_payload)
 			{
@@ -455,7 +554,7 @@ METHOD(task_t, process_r, status_t,
 			}
 			id = id_payload->get_identification(id_payload);
 			this->ike_sa->set_other_id(this->ike_sa, id);
-
+#endif
 			while (TRUE)
 			{
 				DESTROY_IF(this->peer_cfg);
@@ -474,7 +573,10 @@ METHOD(task_t, process_r, status_t,
 					break;
 				}
 			}
-
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			if (this->ike_sa->get_version(this->ike_sa) == IKEV1_SM)
+				DESTROY_IF(id_payload);
+#endif
 			if (!charon->bus->authorize(charon->bus, FALSE))
 			{
 				DBG1(DBG_IKE, "Main Mode authorization hook forbids IKE_SA, "
@@ -513,6 +615,32 @@ METHOD(task_t, build_r, status_t,
 		}
 		case MM_KE:
 		{
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			if (this->ike_sa->get_version(this->ike_sa) == IKEV1_SM)
+			{
+				if (!this->ph1->add_XCH_SIG(this->ph1, message, this->proposal))
+				{
+					return send_notify(this, INVALID_KEY_INFORMATION);
+				}
+				if (!this->ph1->derive_sm_keys(this->ph1, this->peer_cfg, this->method))
+				{
+					return send_notify(this, INVALID_KEY_INFORMATION);
+				}
+				return NEED_MORE;
+			}
+			else
+			{
+				if (!this->ph1->add_nonce_ke(this->ph1, message))
+				{
+					return send_notify(this, INVALID_KEY_INFORMATION);
+				}
+				if (!this->ph1->derive_keys(this->ph1, this->peer_cfg, this->method))
+				{
+					return send_notify(this, INVALID_KEY_INFORMATION);
+				}
+				return NEED_MORE;
+			}
+#else
 			if (!this->ph1->add_nonce_ke(this->ph1, message))
 			{
 				return send_notify(this, INVALID_KEY_INFORMATION);
@@ -522,6 +650,7 @@ METHOD(task_t, build_r, status_t,
 				return send_notify(this, INVALID_KEY_INFORMATION);
 			}
 			return NEED_MORE;
+#endif
 		}
 		case MM_AUTH:
 		{
@@ -530,6 +659,32 @@ METHOD(task_t, build_r, status_t,
 			adopt_children_job_t *job = NULL;
 			xauth_t *xauth = NULL;
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			chunk_t id_encoded = chunk_empty;
+			if (this->ike_sa->get_version(this->ike_sa) == IKEV1_SM)
+			{
+				id = this->ike_sa->get_my_id(this->ike_sa);
+				id_payload = id_payload_create_from_identification(PLV1_ID, id);
+				id_encoded = id_payload->get_encoded(id_payload);
+				DESTROY_IF(id_payload);
+			}
+			else
+			{
+				id = this->ph1->get_id(this->ph1, this->peer_cfg, TRUE);
+				this->ike_sa->set_my_id(this->ike_sa, id->clone(id));
+
+				id_payload = id_payload_create_from_identification(PLV1_ID, id);
+				message->add_payload(message, &id_payload->payload_interface);
+				id_encoded = id_payload->get_encoded(id_payload);
+			}
+
+			if (!this->ph1->build_auth(this->ph1, this->method, message,
+									   id_encoded))
+			{
+				charon->bus->alert(charon->bus, ALERT_LOCAL_AUTH_FAILED);
+				return send_notify(this, AUTHENTICATION_FAILED);
+			}
+#else
 			id = this->ph1->get_id(this->ph1, this->peer_cfg, TRUE);
 			this->ike_sa->set_my_id(this->ike_sa, id->clone(id));
 
@@ -542,6 +697,7 @@ METHOD(task_t, build_r, status_t,
 				charon->bus->alert(charon->bus, ALERT_LOCAL_AUTH_FAILED);
 				return send_notify(this, AUTHENTICATION_FAILED);
 			}
+#endif
 
 			switch (this->method)
 			{
@@ -679,6 +835,32 @@ METHOD(task_t, process_i, status_t,
 		}
 		case MM_KE:
 		{
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			if (this->ike_sa->get_version(this->ike_sa) == IKEV1_SM)
+			{
+				if (!this->ph1->get_XCH_SIG(this->ph1, message, this->proposal))
+				{
+					return send_notify(this, INVALID_PAYLOAD_TYPE);						
+				}
+				if (!this->ph1->derive_sm_keys(this->ph1, this->peer_cfg, this->method))
+				{
+					return send_notify(this, INVALID_KEY_INFORMATION);
+				}
+				return NEED_MORE;
+			}
+			else
+			{
+				if (!this->ph1->get_nonce_ke(this->ph1, message))
+				{
+					return send_notify(this, INVALID_PAYLOAD_TYPE);
+				}
+				if (!this->ph1->derive_keys(this->ph1, this->peer_cfg, this->method))
+				{
+					return send_notify(this, INVALID_KEY_INFORMATION);
+				}
+				return NEED_MORE;		
+			}
+#else
 			if (!this->ph1->get_nonce_ke(this->ph1, message))
 			{
 				return send_notify(this, INVALID_PAYLOAD_TYPE);
@@ -688,12 +870,49 @@ METHOD(task_t, process_i, status_t,
 				return send_notify(this, INVALID_KEY_INFORMATION);
 			}
 			return NEED_MORE;
+#endif
 		}
 		case MM_AUTH:
 		{
 			id_payload_t *id_payload;
 			identification_t *id, *cid;
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			if (this->ike_sa->get_version(this->ike_sa) == IKEV1_SM)
+			{
+				id = this->ike_sa->get_other_id(this->ike_sa);
+				id_payload = id_payload_create_from_identification(PLV1_ID, id);
+			}
+			else
+			{
+				id_payload = (id_payload_t*)message->get_payload(message, PLV1_ID);
+				if (!id_payload)
+				{
+					DBG1(DBG_IKE, "IDir payload missing");
+					charon->bus->alert(charon->bus, ALERT_PEER_AUTH_FAILED);
+					return send_delete(this);
+				}
+				id = id_payload->get_identification(id_payload);
+				cid = this->ph1->get_id(this->ph1, this->peer_cfg, FALSE);
+				if (cid && !id->matches(id, cid))
+				{
+					DBG1(DBG_IKE, "IDir '%Y' does not match to '%Y'", id, cid);
+					id->destroy(id);
+					charon->bus->alert(charon->bus, ALERT_PEER_AUTH_FAILED);
+					return send_delete(this);
+				}
+				this->ike_sa->set_other_id(this->ike_sa, id);
+			}
 
+			if (!this->ph1->verify_auth(this->ph1, this->method, message,
+										id_payload->get_encoded(id_payload)))
+			{
+				charon->bus->alert(charon->bus, ALERT_PEER_AUTH_FAILED);
+				return send_delete(this);
+			}
+
+			if (this->ike_sa->get_version(this->ike_sa) == IKEV1_SM)
+				DESTROY_IF(id_payload);
+#else
 			id_payload = (id_payload_t*)message->get_payload(message, PLV1_ID);
 			if (!id_payload)
 			{
@@ -711,13 +930,14 @@ METHOD(task_t, process_i, status_t,
 				return send_delete(this);
 			}
 			this->ike_sa->set_other_id(this->ike_sa, id);
-
 			if (!this->ph1->verify_auth(this->ph1, this->method, message,
 										id_payload->get_encoded(id_payload)))
 			{
 				charon->bus->alert(charon->bus, ALERT_PEER_AUTH_FAILED);
 				return send_delete(this);
 			}
+#endif
+
 			if (!charon->bus->authorize(charon->bus, FALSE))
 			{
 				DBG1(DBG_IKE, "Main Mode authorization hook forbids IKE_SA, "

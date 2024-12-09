@@ -16,5 +16,12 @@ libstrongswan_gmssl_la_SOURCES = \
 	gmssl_crypter.h gmssl_crypter.c	\
 	gmssl_hmac.h gmssl_hmac.c
 
+if USE_CUSTOM_EXT_ATTR_IKEV1_SM
+libstrongswan_gmssl_la_SOURCES +=	\
+	gmssl_sm2_private_key.h gmssl_sm2_private_key.c 	\
+	gmssl_sm2_public_key.h gmssl_sm2_public_key.c 	\
+	gmssl_util.h gmssl_util.c
+endif
+
 libstrongswan_gmssl_la_LDFLAGS = -module -avoid-version
-libstrongswan_gmssl_la_LIBADD  = $(GMSSL_LIB)
+libstrongswan_gmssl_la_LIBADD  = $(GMSSL_LIB) $(OPENSSL_LIB)

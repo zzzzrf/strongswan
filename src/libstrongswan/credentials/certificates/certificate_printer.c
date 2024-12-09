@@ -590,6 +590,16 @@ static void print_pubkey(private_certificate_printer_t *this, public_key_t *key,
 	{
 		fprintf(f, "  subjkey:   %#B\n", &chunk);
 	}
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		if (key->get_type(key) == KEY_SM2)
+		{
+			if (key->get_fingerprint(key, KEYID_PUBKEY_INFO_SM3, &chunk))
+					printf("  keyid:     %#B\n", &chunk);
+
+			if (key->get_fingerprint(key, KEYID_PUBKEY_SM3, &chunk))
+					printf("  subjkey:   %#B\n", &chunk);
+		}
+#endif
 }
 
 METHOD(certificate_printer_t, print, void,

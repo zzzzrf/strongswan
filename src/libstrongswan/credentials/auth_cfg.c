@@ -103,6 +103,10 @@ static inline bool is_multi_value_rule(auth_rule_t type)
 		case AUTH_HELPER_IM_HASH_URL:
 		case AUTH_HELPER_REVOCATION_CERT:
 		case AUTH_HELPER_AC_CERT:
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		case AUTH_HELPER_SM_ENC_CERT:
+		case AUTH_HELPER_SM_SIG_CERT:
+#endif
 			return TRUE;
 	}
 	return FALSE;
@@ -242,6 +246,10 @@ static void init_entry(entry_t *this, auth_rule_t type, va_list args)
 		case AUTH_HELPER_SUBJECT_HASH_URL:
 		case AUTH_HELPER_REVOCATION_CERT:
 		case AUTH_HELPER_AC_CERT:
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		case AUTH_HELPER_SM_ENC_CERT:
+		case AUTH_HELPER_SM_SIG_CERT:
+#endif
 			/* pointer type */
 			this->value = va_arg(args, void*);
 			break;
@@ -282,6 +290,10 @@ static bool entry_equals(entry_t *e1, entry_t *e2)
 		case AUTH_HELPER_SUBJECT_CERT:
 		case AUTH_HELPER_REVOCATION_CERT:
 		case AUTH_HELPER_AC_CERT:
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		case AUTH_HELPER_SM_ENC_CERT:
+		case AUTH_HELPER_SM_SIG_CERT:
+#endif
 		{
 			certificate_t *c1, *c2;
 
@@ -347,6 +359,10 @@ static void destroy_entry_value(entry_t *entry)
 		case AUTH_HELPER_SUBJECT_CERT:
 		case AUTH_HELPER_REVOCATION_CERT:
 		case AUTH_HELPER_AC_CERT:
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		case AUTH_HELPER_SM_ENC_CERT:
+		case AUTH_HELPER_SM_SIG_CERT:
+#endif
 		{
 			certificate_t *cert = (certificate_t*)entry->value;
 			cert->destroy(cert);
@@ -430,6 +446,10 @@ static void replace(private_auth_cfg_t *this, entry_enumerator_t *enumerator,
 			case AUTH_HELPER_SUBJECT_HASH_URL:
 			case AUTH_HELPER_REVOCATION_CERT:
 			case AUTH_HELPER_AC_CERT:
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			case AUTH_HELPER_SM_ENC_CERT:
+			case AUTH_HELPER_SM_SIG_CERT:
+#endif
 				/* pointer type */
 				entry->value = va_arg(args, void*);
 				break;
@@ -511,6 +531,10 @@ METHOD(auth_cfg_t, get, void*,
 		case AUTH_HELPER_SUBJECT_HASH_URL:
 		case AUTH_HELPER_REVOCATION_CERT:
 		case AUTH_HELPER_AC_CERT:
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		case AUTH_HELPER_SM_ENC_CERT:
+		case AUTH_HELPER_SM_SIG_CERT:
+#endif
 		case AUTH_RULE_MAX:
 			break;
 	}
@@ -609,6 +633,9 @@ METHOD(auth_cfg_t, add_pubkey_constraints, void,
 			{ "sha512",		SIGN_BLISS_WITH_SHA2_512,		KEY_BLISS,	 },
 			{ "identity",	SIGN_ED25519,					KEY_ED25519, },
 			{ "identity",	SIGN_ED448,						KEY_ED448,	 },
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			{ "sm2",			SIGN_SM2_WITH_SM3,				KEY_SM2,	 },
+#endif
 		};
 
 		if (expected_strength != AUTH_RULE_MAX)
@@ -670,6 +697,14 @@ METHOD(auth_cfg_t, add_pubkey_constraints, void,
 			expected_type = KEY_ANY;
 			continue;
 		}
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		if (streq(token, "sm2") || streq(token, "ike:sm2"))
+		{
+			key_token = token;
+			expected_type = KEY_SM2;
+			continue;
+		}	
+#endif
 		if (key_token && strpfx(key_token, "ike:") && !ike)
 		{
 			continue;
@@ -868,6 +903,10 @@ METHOD(auth_cfg_t, complies, bool,
 				break;
 			}
 			case AUTH_RULE_SUBJECT_CERT:
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			case AUTH_HELPER_SM_ENC_CERT:
+			case AUTH_HELPER_SM_SIG_CERT:
+#endif
 			{
 				certificate_t *cert;
 
@@ -1232,6 +1271,10 @@ static void merge(private_auth_cfg_t *this, private_auth_cfg_t *other, bool copy
 				case AUTH_HELPER_SUBJECT_CERT:
 				case AUTH_HELPER_REVOCATION_CERT:
 				case AUTH_HELPER_AC_CERT:
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+				case AUTH_HELPER_SM_ENC_CERT:
+				case AUTH_HELPER_SM_SIG_CERT:
+#endif
 				{
 					certificate_t *cert = (certificate_t*)value;
 
@@ -1403,6 +1446,10 @@ METHOD(auth_cfg_t, clone_, auth_cfg_t*,
 			case AUTH_HELPER_SUBJECT_CERT:
 			case AUTH_HELPER_REVOCATION_CERT:
 			case AUTH_HELPER_AC_CERT:
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			case AUTH_HELPER_SM_ENC_CERT:
+			case AUTH_HELPER_SM_SIG_CERT:
+#endif
 			{
 				certificate_t *cert = (certificate_t*)value;
 				clone->add(clone, type, cert->get_ref(cert));

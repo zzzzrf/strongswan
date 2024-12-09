@@ -93,6 +93,10 @@ task_manager_t *task_manager_create(ike_sa_t *ike_sa)
 		case IKEV1:
 #ifdef USE_IKEV1
 			return &task_manager_v1_create(ike_sa)->task_manager;
+ #if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		case IKEV1_SM:
+			return &task_manager_v1_create(ike_sa)->task_manager;
+ #endif
 #endif
 			break;
 		case IKEV2:

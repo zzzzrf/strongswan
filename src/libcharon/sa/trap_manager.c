@@ -644,7 +644,11 @@ METHOD(trap_manager_t, acquire, void,
 			.label = data->label,
 		};
 
-		if (this->ignore_acquire_ts || ike_sa->get_version(ike_sa) == IKEV1)
+		if (this->ignore_acquire_ts || ike_sa->get_version(ike_sa) == IKEV1 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			|| ike_sa->get_version(ike_sa) == IKEV1_SM
+#endif
+		)
 		{	/* in IKEv1, don't prepend the acquiring packet TS, as we only
 			 * have a single TS that we can establish in a Quick Mode. */
 			args.src = args.dst = NULL;

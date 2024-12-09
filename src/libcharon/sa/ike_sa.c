@@ -1648,7 +1648,11 @@ METHOD(ike_sa_t, process_message, status_t,
 	{	/* do not handle messages in passive state */
 		return FAILED;
 	}
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	if ((message->get_major_version(message) + (message->get_minor_version(message) << 4)) != this->version)
+#else
 	if (message->get_major_version(message) != this->version)
+#endif
 	{
 		DBG1(DBG_IKE, "ignoring %N IKEv%u exchange on %N SA",
 			 exchange_type_names, message->get_exchange_type(message),

@@ -924,6 +924,9 @@ int load_creds_cfg(vici_conn_t *conn, command_format_options_t format,
 	load_keys(&ctx, "ecdsa",   SWANCTL_ECDSADIR);
 	load_keys(&ctx, "bliss",   SWANCTL_BLISSDIR);
 	load_keys(&ctx, "pkcs8",   SWANCTL_PKCS8DIR);
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	load_keys(&ctx, "sm2", SWANCTL_SM2DIR);
+#endif
 
 	load_containers(&ctx, "pkcs12", SWANCTL_PKCS12DIR);
 

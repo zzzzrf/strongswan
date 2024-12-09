@@ -73,6 +73,12 @@ static int req()
 				{
 					type = KEY_ANY;
 				}
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+				else if (streq(arg, "sm2"))
+				{
+					type = KEY_SM2;
+				}
+#endif
 				else
 				{
 					error = "invalid input type";

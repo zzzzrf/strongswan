@@ -317,6 +317,228 @@ static void adjust_keylen(uint16_t alg, chunk_t *key)
 	}
 }
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+METHOD(keymat_v1_t, create_sm_aead, aead_t*,
+	private_keymat_v1_t *this, proposal_t *proposal)
+{
+	private_aead_t *aead;
+	crypter_t *crypter;
+	uint16_t enc_alg;
+	uint16_t prf_alg;
+	uint16_t enc_alg_size;
+
+	if (!proposal->get_algorithm(proposal, PSEUDO_RANDOM_FUNCTION, &prf_alg, NULL))
+	{	/* no PRF negotiated, use HMAC version of integrity algorithm instead */
+		if (!proposal->get_algorithm(proposal, INTEGRITY_ALGORITHM, &prf_alg, NULL)
+			|| (prf_alg = auth_to_prf(prf_alg)) == PRF_UNDEFINED)
+		{
+			DBG1(DBG_IKE, "no %N selected",
+				 transform_type_names, PSEUDO_RANDOM_FUNCTION);
+			return NULL;
+		}
+	}
+	this->prf = lib->crypto->create_prf(lib->crypto, prf_alg);
+	if (!this->prf)
+	{
+		DBG1(DBG_IKE, "%N %N not supported!",
+			 transform_type_names, PSEUDO_RANDOM_FUNCTION,
+			 pseudo_random_function_names, prf_alg);
+		return NULL;
+	}
+	if (this->prf->get_block_size(this->prf) <
+		this->prf->get_key_size(this->prf))
+	{	/* TODO-IKEv1: support PRF output expansion (RFC 2409, Appendix B) */
+		DBG1(DBG_IKE, "expansion of %N %N output not supported!",
+			 transform_type_names, PSEUDO_RANDOM_FUNCTION,
+			 pseudo_random_function_names, prf_alg);
+		goto destory_prf;
+	}
+	if (proposal->get_algorithm(proposal, ENCRYPTION_ALGORITHM,
+					&enc_alg, &enc_alg_size) != TRUE || enc_alg_size == 0)
+		goto destory_prf;
+
+	crypter = lib->crypto->create_crypter(lib->crypto, enc_alg, enc_alg_size / 8);
+	if (!crypter)
+		goto destory_prf;
+
+	if (!this->hasher && !this->public.create_hasher(&this->public, proposal))
+		goto destory_crypter;
+
+	INIT(aead,
+		.aead = {
+			.encrypt = _encrypt,
+			.decrypt = _decrypt,
+			.get_block_size = _get_block_size,
+			.get_icv_size = _get_icv_size,
+			.get_iv_size = _get_iv_size,
+			.get_iv_gen = _get_iv_gen,
+			.get_key_size = _get_key_size,
+			.set_key = _set_key,
+			.destroy = _aead_destroy,
+		},
+		.crypter = crypter,
+	);
+	this->aead = &aead->aead;
+	this->prf_auth = lib->crypto->create_prf(lib->crypto, prf_alg);
+
+	return this->aead;
+
+destory_crypter:
+	crypter->destroy(crypter);
+	crypter = NULL;
+
+destory_prf:
+	this->prf->destroy(this->prf);
+	this->prf = NULL;
+
+	return NULL;
+}
+
+METHOD(keymat_v1_t, derive_sk, bool,
+	private_keymat_v1_t *this, proposal_t *proposal, chunk_t *sk, ssize_t sk_size)
+{
+	nonce_gen_t *nonceg;
+	chunk_t nonce;
+
+	nonceg = this->public.keymat.create_nonce_gen(&this->public.keymat);
+	if (!nonceg)
+	{
+		DBG1(DBG_IKE, "no nonce generator found to create nonce");
+		return FALSE;
+	}
+
+	if (!nonceg->allocate_nonce(nonceg, NONCE_SIZE, &nonce))
+	{
+		DBG1(DBG_IKE, "nonce allocation failed");
+		nonceg->destroy(nonceg);
+		return FALSE;
+	}
+
+	nonceg->destroy(nonceg);
+	*sk = chunk_alloc(sk_size);
+	*sk = chunk_copy_pad(*sk, nonce, '\0');
+	chunk_free(&nonce);
+
+	return TRUE;
+}
+
+METHOD(keymat_v1_t, derive_ikesm_keys, bool,
+	private_keymat_v1_t *this, proposal_t *proposal, chunk_t ski, chunk_t skr,
+	chunk_t nonce_i, chunk_t nonce_r, ike_sa_id_t *id,
+	auth_method_t auth, shared_key_t *shared_key)
+{
+	chunk_t nonces, spi_i, spi_r, data, hash, skeyid_e;
+	chunk_t skeyid, ka;
+
+	DBG4(DBG_IKE, "nonce_i : %B\n", &nonce_i);
+	DBG4(DBG_IKE, "nonce_r : %B\n", &nonce_r);
+	DBG4(DBG_IKE, "sk_i : %B\n", &ski);
+	DBG4(DBG_IKE, "sk_r : %B\n", &skr);
+
+	nonces = chunk_cata("cc", nonce_i, nonce_r);
+	if (this->hasher->allocate_hash(this->hasher, nonces, &hash) != TRUE)
+	{
+		DBG2(DBG_IKE, "HASH(Ni_b | Nr_b) failed");
+		return FALSE;
+	}
+	DBG4(DBG_IKE, "HASH(Ni_b | Nr_b) %B\n", &hash);
+
+	if (this->prf->set_key(this->prf, hash) != TRUE)
+	{
+		chunk_clear(&hash);
+		DBG1(DBG_IKE, "setting prf key failed");
+		return FALSE;
+	}
+	chunk_clear(&hash);
+
+	spi_i = chunk_alloca(sizeof(uint64_t));
+	spi_r = chunk_alloca(sizeof(uint64_t));
+	*((uint64_t*)spi_i.ptr) = id->get_initiator_spi(id);
+	*((uint64_t*)spi_r.ptr) = id->get_responder_spi(id);
+
+	data = chunk_cat("cc", spi_i, spi_r);
+	DBG4(DBG_IKE, "CKY-I | CKY-R %B\n", &data);
+
+	/* SKEYID = PRF(HASH(Ni_b, Nr_b), CKY-I | CKY-R) */
+	if (this->prf->allocate_bytes(this->prf, data, &skeyid) != TRUE)
+	{
+		chunk_clear(&data);
+		DBG1(DBG_IKE, "SKEYID = PRF(HASH(Ni_b, Nr_b), CKY-I | CKY-R) failed");
+		return FALSE;
+	}
+	DBG4(DBG_IKE, "SKEYID %B\n", &skeyid);
+	chunk_clear(&data);
+
+	/* SKEYID_d = PRF(SKEYID, CKY-I | CKY-R | 0) */
+	data = chunk_cat("ccc", spi_i, spi_r, octet_0);
+	DBG4(DBG_IKE, "CKY-I | CKY-R | 0 %B\n", &data);
+	if (this->prf->set_key(this->prf, skeyid) != TRUE)
+	{
+		chunk_clear(&skeyid);
+		chunk_clear(&data);
+		DBG1(DBG_IKE, "setting prf key failed");
+		return FALSE;
+	}
+	if (this->prf->allocate_bytes(this->prf, data, &this->skeyid_d) != TRUE)
+	{
+		chunk_clear(&skeyid);
+		chunk_clear(&data);
+		DBG1(DBG_IKE, "SKEYID_d = PRF(SKEYID, CKY-I | CKY-R | 0) failed");
+		return FALSE;
+	}
+	DBG4(DBG_IKE, "SKEYID_d = PRF(SKEYID, CKY-I | CKY-R | 0) %B\n", &this->skeyid_d);
+	chunk_clear(&data);
+
+	/* SKEYID_a = prf(SKEYID, SKEYID_d | CKY-I | CKY-R | 1) */
+	data = chunk_cat("cccc", this->skeyid_d, spi_i, spi_r, octet_1);
+	DBG4(DBG_IKE, "SKEYID_d | CKY-I | CKY-R | 1 %B\n", &data);
+	if (this->prf->allocate_bytes(this->prf, data, &this->skeyid_a) != TRUE)
+	{
+		chunk_clear(&skeyid);
+		chunk_clear(&data);
+		DBG1(DBG_IKE, "SKEYID_a = prf(SKEYID, SKEYID_d | CKY-I | CKY-R | 1) failed");
+		return FALSE;
+	}
+	DBG4(DBG_IKE, "SKEYID_a = PRF(SKEYID, SKEYID_d | CKY-I | CKY-R | 1) %B\n", &this->skeyid_a);
+	chunk_clear(&data);
+
+	/* SKEYID_e = prf(SKEYID, SKEYID_a | CKY-I | CKY-R | 2) */
+	data = chunk_cat("cccc", this->skeyid_a, spi_i, spi_r, octet_2);
+	DBG4(DBG_IKE, "SKEYID_a | CKY-I | CKY-R | 2 %B\n", &data);
+	if (this->prf->allocate_bytes(this->prf, data, &skeyid_e) != TRUE)
+	{
+		chunk_clear(&skeyid);
+		chunk_clear(&data);
+		DBG1(DBG_IKE, "SKEYID_e = prf(SKEYID, SKEYID_a | CKY-I | CKY-R | 2) failed");
+		return FALSE;
+	}
+	DBG4(DBG_IKE, "SKEYID_e = PRF(SKEYID, SKEYID_a | CKY-I | CKY-R | 2) %B\n", &skeyid_e);
+	chunk_clear(&data);
+
+	if (this->prf_auth->set_key(this->prf_auth, skeyid) != TRUE)
+	{
+		chunk_clear(&skeyid_e);
+		chunk_clear(&skeyid);
+		return FALSE;
+	}
+	chunk_clear(&skeyid);
+
+	if (this->aead)
+		this->aead->destroy(this->aead);
+
+	this->aead = create_aead(proposal, this->prf, skeyid_e, &ka);
+	if (!this->aead)
+		return FALSE;
+
+	chunk_clear(&ka);
+
+	data = chunk_cata("cc", ski, skr);
+	DBG4(DBG_IKE, "SKI | SKR %B\n", &data);
+	return this->iv_manager->init_iv_chain(this->iv_manager, data, this->hasher,
+										this->aead->get_block_size(this->aead));
+}
+#endif
+
 METHOD(keymat_v1_t, derive_ike_keys, bool,
 	private_keymat_v1_t *this, proposal_t *proposal, key_exchange_t *dh,
 	chunk_t dh_other, chunk_t nonce_i, chunk_t nonce_r, ike_sa_id_t *id,
@@ -699,6 +921,46 @@ METHOD(keymat_v1_t, get_hasher, hasher_t*,
 	return this->hasher;
 }
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+METHOD(keymat_v1_t, get_sm_hash, bool,
+	private_keymat_v1_t *this, bool initiator,
+	ike_sa_id_t *ike_sa_id, chunk_t sa_i, chunk_t id, chunk_t *hash)
+{
+	chunk_t data;
+	uint64_t spi, spi_other;
+
+	/* HASH_I = prf(SKEYID, CKY-I | CKY-R | SAi_b | IDi_b )
+	 * HASH_R = prf(SKEYID, CKY-R | CKY-I | SAr_b | IDr_b )
+	 */
+	if (initiator)
+	{
+		spi = ike_sa_id->get_initiator_spi(ike_sa_id);
+		spi_other = ike_sa_id->get_responder_spi(ike_sa_id);
+	}
+	else 
+	{
+		spi_other = ike_sa_id->get_initiator_spi(ike_sa_id);
+		spi = ike_sa_id->get_responder_spi(ike_sa_id);
+	}
+
+	data = chunk_cat("cccc", chunk_from_thing(spi), chunk_from_thing(spi_other),
+					 sa_i, id);
+
+	DBG3(DBG_IKE, "HASH_%c data %B", initiator ? 'I' : 'R', &data);
+
+	if (!this->prf_auth->allocate_bytes(this->prf_auth, data, hash))
+	{
+		free(data.ptr);
+		return FALSE;
+	}
+
+	DBG3(DBG_IKE, "HASH_%c %B", initiator ? 'I' : 'R', hash);
+	free(data.ptr);
+
+	return TRUE;
+}
+#endif
+
 METHOD(keymat_v1_t, get_hash, bool,
 	private_keymat_v1_t *this, bool initiator, chunk_t dh, chunk_t dh_other,
 	ike_sa_id_t *ike_sa_id, chunk_t sa_i, chunk_t id, chunk_t *hash,
@@ -978,5 +1240,12 @@ keymat_v1_t *keymat_v1_create(bool initiator)
 		.initiator = initiator,
 		.iv_manager = iv_manager_create(0),
 	);
+
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	this->public.derive_sk = _derive_sk;
+	this->public.create_sm_aead = _create_sm_aead;
+	this->public.derive_ikesm_keys = _derive_ikesm_keys;
+	this->public.get_sm_hash = _get_sm_hash;
+#endif
 	return &this->public;
 }

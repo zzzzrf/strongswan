@@ -149,6 +149,15 @@ struct phase1_t {
 	 */
 	bool (*get_nonce_ke)(phase1_t *this, message_t *message);
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	bool (*add_XCH_SIG)(phase1_t *this, message_t *message, proposal_t *proposal);
+
+	bool (*get_XCH_SIG)(phase1_t *this, message_t *message, proposal_t *proposal);
+
+	bool (*derive_sm_keys)(phase1_t *this, peer_cfg_t *peer_cfg,
+						auth_method_t method);
+#endif
+
 	/**
 	 * Destroy a phase1_t.
 	 */

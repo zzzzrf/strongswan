@@ -67,3 +67,6 @@ TEST_SUITE_DEPEND(ed448_suite_create, PRIVKEY_GEN, KEY_ED448)
 TEST_SUITE(signature_params_suite_create)
 TEST_SUITE(metadata_suite_create)
 TEST_SUITE(metadata_set_suite_create)
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+TEST_SUITE_DEPEND(sm2_suite_create, PRIVKEY_GEN, KEY_SM2)
+#endif

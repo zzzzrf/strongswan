@@ -1190,12 +1190,25 @@ static private_key_t *get_private_by_cert(private_credential_manager_t *this,
 	public = cert->get_public_key(cert);
 	if (public)
 	{
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		cred_encoding_type_t encoding_type = KEYID_PUBKEY_SHA1;
+		if (public->get_type(public) == KEY_SM2)
+			encoding_type = KEYID_PUBKEY_SM3;
+
+		if (public->get_fingerprint(public, encoding_type, &chunk))
+		{
+			keyid = identification_create_from_encoding(ID_KEY_ID, chunk);
+			private = get_private_by_keyid(this, type, keyid);
+			keyid->destroy(keyid);
+		}
+#else
 		if (public->get_fingerprint(public, KEYID_PUBKEY_SHA1, &chunk))
 		{
 			keyid = identification_create_from_encoding(ID_KEY_ID, chunk);
 			private = get_private_by_keyid(this, type, keyid);
 			keyid->destroy(keyid);
 		}
+#endif
 		public->destroy(public);
 	}
 	return private;

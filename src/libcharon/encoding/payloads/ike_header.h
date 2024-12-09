@@ -40,6 +40,14 @@ typedef struct ike_header_t ike_header_t;
  */
 #define IKEV1_MINOR_VERSION 0
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+/**
+
+ * Minor Version of IKEv1 with SM we implement.
+ */
+#define IKEV1_SM_MINOR_VERSION 1
+#endif
+
 /**
  * Major Version of IKEv2 we implement.
  */

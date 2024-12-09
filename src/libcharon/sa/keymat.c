@@ -32,6 +32,9 @@ keymat_t *keymat_create(ike_version_t version, bool initiator)
 	{
 		case IKEV1:
 #ifdef USE_IKEV1
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		case IKEV1_SM:
+#endif
 			keymat = keymat_v1_ctor ? keymat_v1_ctor(initiator)
 									: &keymat_v1_create(initiator)->keymat;
 #endif
