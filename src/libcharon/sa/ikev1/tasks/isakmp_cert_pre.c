@@ -277,6 +277,34 @@ static void process_certs(private_isakmp_cert_pre_t *this, message_t *message)
 			cert_payload = (cert_payload_t*)payload;
 			encoding = cert_payload->get_cert_encoding(cert_payload);
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			if (message->get_major_version(message) == IKEV1_MAJOR_VERSION &&
+					message->get_minor_version(message) == IKEV1_SM_MINOR_VERSION)
+			{
+				certificate_t *cert;
+				cert = cert_payload->get_cert(cert_payload);
+				if (cert == NULL)
+					continue;
+
+				switch (encoding)
+				{
+					case ENC_X509_SIGNATURE:
+						DBG1(DBG_IKE, "received X509 SIGNATURE cert \"%Y\"",
+														cert->get_subject(cert));
+						auth->add(auth, AUTH_HELPER_SM_SIG_CERT, cert);
+						break;
+					case ENC_X509_KEY_EXCHANGE:
+						DBG1(DBG_IKE, "received X509 KEY EXCHANGE cert \"%Y\"",
+														cert->get_subject(cert));
+						auth->add(auth, AUTH_HELPER_SM_ENC_CERT, cert);
+						break;
+					default:
+						DBG1(DBG_ENC, "certificate encoding %N not supported in IKEv1-SM",
+									cert_encoding_names, encoding);
+				}
+				continue;
+			}
+#endif
 			switch (encoding)
 			{
 				case ENC_X509_SIGNATURE:
@@ -463,12 +491,106 @@ static bool send_certreq(private_isakmp_cert_pre_t *this)
 	return req;
 }
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+static status_t prepare_sm_certs_by_local(private_isakmp_cert_pre_t *this, message_t *message)
+{
+	certificate_t *cert;
+	ike_sa_t *ike_sa = this->ike_sa;
+	auth_cfg_t *auth = ike_sa->get_auth_cfg(ike_sa, TRUE);
+	certificate_t *cert_e = NULL, *cert_s = NULL;
+
+	enumerator_t *enumerator = lib->credmgr->create_cert_enumerator(lib->credmgr, CERT_X509, KEY_SM2, NULL, FALSE);
+	while (enumerator->enumerate(enumerator, &cert))
+	{
+		if (((x509_t *)cert)->get_flags((x509_t *)cert) & X509_SM_CERT_ENC)
+		{
+			cert_e = cert;
+			auth->add(auth, AUTH_HELPER_SM_ENC_CERT, cert_e);
+		}
+		else if (((x509_t *)cert)->get_flags((x509_t *)cert) & X509_SM_CERT_SIG)
+		{
+			cert_s = cert;
+			auth->add(auth, AUTH_HELPER_SM_SIG_CERT, cert_s);
+		}
+		else
+		 	continue;
+	}
+	enumerator->destroy(enumerator);
+
+	if (cert_e == NULL || cert_s == NULL)
+	{
+		if (cert_e == NULL && cert_s == NULL)
+		{
+			DBG1(DBG_IKE, "sm enc and sig certs both not found");
+			return FAILED;
+		}
+
+		/* ADC */
+		{
+			if (cert_e == NULL)
+			{
+				cert_e = cert_s;
+				DBG1(DBG_IKE, "sign cert is trated as enc cert");
+				auth->add(auth, AUTH_HELPER_SM_ENC_CERT, cert_e);
+			}
+
+			if (cert_s == NULL)
+			{
+				cert_s = cert_e;
+				DBG1(DBG_IKE, "enc cert is trated as sign cert");
+				auth->add(auth, AUTH_HELPER_SM_SIG_CERT, cert_s);
+			}
+		}
+	}
+	
+	return NEED_MORE;
+}
+
+static status_t prepare_sm_certs_by_auth_cfg(private_isakmp_cert_pre_t *this, message_t *message)
+{
+	peer_cfg_t *peer_cfg;
+	enumerator_t *enumerator;
+	auth_cfg_t *curr, *auth;
+	certificate_t *cert_s, *cert_e;
+
+	auth = this->ike_sa->get_auth_cfg(this->ike_sa, TRUE);
+	peer_cfg = this->ike_sa->get_peer_cfg(this->ike_sa);
+
+	enumerator = peer_cfg->create_auth_cfg_enumerator(peer_cfg, TRUE);
+	if (enumerator->enumerate(enumerator, &curr))
+	{
+		cert_e = curr->get(curr, AUTH_HELPER_SM_ENC_CERT);
+		cert_s = curr->get(curr, AUTH_HELPER_SM_SIG_CERT);
+		if (cert_e == NULL || cert_s == NULL)
+		{
+			enumerator->destroy(enumerator);
+			DBG1(DBG_IKE, "sm enc/sig certs not found");
+			return FAILED;
+		}
+		auth->add(auth, AUTH_HELPER_SM_ENC_CERT, cert_e);
+		auth->add(auth, AUTH_HELPER_SM_SIG_CERT, cert_s);
+		DBG2(DBG_IKE, "prepare sm enc cert: %Y", cert_e->get_subject(cert_e));
+		DBG2(DBG_IKE, "prepare sm sig cert: %Y", cert_e->get_subject(cert_e));
+	}
+	enumerator->destroy(enumerator);
+	return NEED_MORE;
+}
+#endif
+
 METHOD(task_t, build_i, status_t,
 	private_isakmp_cert_pre_t *this, message_t *message)
 {
 	switch (message->get_exchange_type(message))
 	{
 		case ID_PROT:
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			if (this->state == CR_SA)
+			{
+				if (message->get_major_version(message) == IKEV1_MAJOR_VERSION &&
+						message->get_minor_version(message) == IKEV1_SM_MINOR_VERSION)
+							return prepare_sm_certs_by_auth_cfg(this, message);
+			}
+#endif
 			if (this->state == CR_AUTH)
 			{
 				build_certreqs(this, message);
@@ -502,8 +624,18 @@ METHOD(task_t, process_r, status_t,
 					{
 						return SUCCESS;
 					}
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+					if (message->get_major_version(message) == IKEV1_MAJOR_VERSION &&
+							message->get_minor_version(message) == IKEV1_SM_MINOR_VERSION)
+						return prepare_sm_certs_by_local(this, message);
+#endif
 					return NEED_MORE;
 				case CR_KE:
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+					if (message->get_major_version(message) == IKEV1_MAJOR_VERSION &&
+							message->get_minor_version(message) == IKEV1_SM_MINOR_VERSION)
+						process_certs(this, message);
+#endif
 					process_certreqs(this, message);
 					return NEED_MORE;
 				case CR_AUTH:
@@ -594,6 +726,11 @@ METHOD(task_t, process_i, status_t,
 					{
 						return SUCCESS;
 					}
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+					if (message->get_major_version(message) == IKEV1_MAJOR_VERSION &&
+							message->get_minor_version(message) == IKEV1_SM_MINOR_VERSION)
+						process_certs(this, message);
+#endif
 					this->state = CR_KE;
 					return NEED_MORE;
 				case CR_KE:

@@ -32,6 +32,9 @@ keymat_t *keymat_create(ike_version_t version, bool initiator)
 	{
 		case IKEV1:
 #ifdef USE_IKEV1
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		case IKEV1_SM:
+#endif
 			keymat = keymat_v1_ctor ? keymat_v1_ctor(initiator)
 									: &keymat_v1_create(initiator)->keymat;
 #endif
@@ -67,6 +70,7 @@ int keymat_get_keylen_encr(encryption_algorithm_t alg)
 		{ENCR_DES,					 64},
 		{ENCR_3DES,					192},
 		{ENCR_CHACHA20_POLY1305,	256},
+		{ENCR_SM4_CBC, 			128},
 	};
 	int i;
 
@@ -99,6 +103,7 @@ int keymat_get_keylen_integ(integrity_algorithm_t alg)
 		{AUTH_HMAC_SHA2_512_512,	512},
 		{AUTH_AES_XCBC_96,			128},
 		{AUTH_AES_CMAC_96,			128},
+		{AUTH_HMAC_SM3, 				256},
 	};
 	int i;
 

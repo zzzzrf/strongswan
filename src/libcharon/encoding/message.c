@@ -538,6 +538,9 @@ static payload_rule_t id_prot_i_rules[] = {
 	{PLV1_CERTIFICATE,				0,	MAX_CERT_PAYLOADS,		TRUE,	FALSE},
 	{PLV1_SIGNATURE,				0,	1,						TRUE,	FALSE},
 	{PLV1_HASH,						0,	1,						TRUE,	FALSE},
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	{PLV1_SK,					0,	1,						FALSE,	FALSE},
+#endif
 	{PLV1_FRAGMENT,					0,	1,						FALSE,	TRUE},
 };
 
@@ -548,6 +551,9 @@ static payload_order_t id_prot_i_order[] = {
 /*	payload type					notify type */
 	{PLV1_SECURITY_ASSOCIATION,		0},
 	{PLV1_KEY_EXCHANGE,				0},
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	{PLV1_SK,			 				0},
+#endif
 	{PLV1_NONCE,					0},
 	{PLV1_ID,						0},
 	{PLV1_CERTIFICATE,				0},
@@ -575,6 +581,9 @@ static payload_rule_t id_prot_r_rules[] = {
 	{PLV1_NAT_D,					0,	MAX_NAT_D_PAYLOADS,		FALSE,	FALSE},
 	{PLV1_NAT_D_DRAFT_00_03,		0,	MAX_NAT_D_PAYLOADS,		FALSE,	FALSE},
 	{PLV1_ID,						0,	1,						TRUE,	FALSE},
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	{PLV1_SK,					0,	1,						FALSE,	FALSE},
+#endif
 	{PLV1_CERTIFICATE,				0,	MAX_CERT_PAYLOADS,		TRUE,	FALSE},
 	{PLV1_SIGNATURE,				0,	1,						TRUE,	FALSE},
 	{PLV1_HASH,						0,	1,						TRUE,	FALSE},
@@ -588,6 +597,9 @@ static payload_order_t id_prot_r_order[] = {
 /*	payload type					notify type */
 	{PLV1_SECURITY_ASSOCIATION,		0},
 	{PLV1_KEY_EXCHANGE,				0},
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	{PLV1_SK,			 				0},
+#endif
 	{PLV1_NONCE,					0},
 	{PLV1_ID,						0},
 	{PLV1_CERTIFICATE,				0},
@@ -1826,6 +1838,16 @@ static status_t generate_message(private_message_t *this, keymat_t *keymat,
 		{
 			payload_rule_t *rule;
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			if (this->public.get_major_version(&this->public) == IKEV1_MAJOR_VERSION &&
+				this->public.get_minor_version(&this->public) == IKEV1_SM_MINOR_VERSION)
+			{
+				if (this->exchange_type == ID_PROT && payload->get_type(payload) != PLV1_HASH)
+				{
+					break;
+				}
+			}
+#endif
 			rule = get_payload_rule(this, payload->get_type(payload));
 			if (rule && rule->encrypted)
 			{
@@ -2660,6 +2682,15 @@ static status_t decrypt_payloads(private_message_t *this, keymat_t *keymat)
 	{
 		type = payload->get_type(payload);
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		if (this->major_version == IKEV1_MAJOR_VERSION && this->minor_version == IKEV1_SM_MINOR_VERSION)
+		{
+			if (this->exchange_type == ID_PROT && type != PLV1_ENCRYPTED)
+			{
+				break;
+			}
+		}
+#endif
 		DBG2(DBG_ENC, "process payload of type %N", payload_type_names, type);
 
 		if (type == PLV2_ENCRYPTED || type == PLV1_ENCRYPTED ||

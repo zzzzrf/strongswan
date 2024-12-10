@@ -58,6 +58,14 @@ struct keymat_v1_t {
 							chunk_t nonce_i, chunk_t nonce_r, ike_sa_id_t *id,
 							auth_method_t auth, shared_key_t *shared_key);
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	bool (*derive_sk)(keymat_v1_t *this, proposal_t *proposal, chunk_t *sk, ssize_t sk_size);
+	aead_t *(*create_sm_aead)(keymat_v1_t *this, proposal_t *proposal);
+	bool (*derive_ikesm_keys)(keymat_v1_t *this, proposal_t *proposal, chunk_t ski, chunk_t skr,
+							chunk_t nonce_i, chunk_t nonce_r, ike_sa_id_t *id,
+							auth_method_t auth, shared_key_t *shared_key);
+#endif
+
 	/**
 	 * Derive keys for the CHILD_SA.
 	 *
@@ -112,6 +120,10 @@ struct keymat_v1_t {
 						chunk_t sa_i, chunk_t id, chunk_t *hash,
 						signature_scheme_t *scheme);
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	bool (*get_sm_hash)(keymat_v1_t *this, bool initiator,
+						ike_sa_id_t *ike_sa_id, chunk_t sa_i, chunk_t id, chunk_t *hash);
+#endif
 	/**
 	 * Get HASH data for integrity/authentication in Phase 2 exchanges.
 	 *

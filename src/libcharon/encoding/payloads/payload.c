@@ -40,6 +40,9 @@
 #include <encoding/payloads/hash_payload.h>
 #include <encoding/payloads/fragment_payload.h>
 #include <encoding/payloads/unknown_payload.h>
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+#include <encoding/payloads/sk_payload.h>
+#endif
 
 ENUM_BEGIN(payload_type_names, PL_NONE, PL_NONE,
 	"PL_NONE");
@@ -206,6 +209,10 @@ payload_t *payload_create(payload_type_t type)
 		case PLV2_NONCE:
 		case PLV1_NONCE:
 			return (payload_t*)nonce_payload_create(type);
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		case PLV1_SK:
+			return (payload_t*)sk_payload_create(type);
+#endif
 		case PLV2_ID_INITIATOR:
 		case PLV2_ID_RESPONDER:
 		case PLV1_ID:
@@ -291,6 +298,12 @@ bool payload_is_known(payload_type_t type, uint8_t maj_ver)
 			{
 				return TRUE;
 			}
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+			if (type == PLV1_SK)
+			{
+				return TRUE;
+			}
+#endif
 			if (maj_ver)
 			{
 				break;

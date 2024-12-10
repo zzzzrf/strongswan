@@ -233,6 +233,10 @@ enum payload_type_t {
 	 */
 	PLV2_FRAGMENT = 53,
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	PLV1_SK = 128,
+#endif
+
 #ifdef ME
 	/**
 	 * Identification payload for peers has a value from

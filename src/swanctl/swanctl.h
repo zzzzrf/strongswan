@@ -96,6 +96,10 @@ extern char *swanctl_dir;
  */
 #define SWANCTL_PKCS12DIR "pkcs12"
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+#define SWANCTL_SM2DIR "sm2"
+#endif
+
 /**
  * Load swanctl.conf, optionally from a custom path. Sets the base dir relative
  * to that file.

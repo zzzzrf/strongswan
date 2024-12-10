@@ -670,6 +670,7 @@ static const struct {
 	{AUTH_AES_XCBC_96,					PRF_AES128_XCBC					},
 	{AUTH_CAMELLIA_XCBC_96,				PRF_CAMELLIA128_XCBC			},
 	{AUTH_AES_CMAC_96,					PRF_AES128_CMAC					},
+	{AUTH_HMAC_SM3,						PRF_HMAC_SM3},
 };
 
 /**
@@ -738,7 +739,13 @@ static bool check_proposal(private_proposal_t *this)
 			}
 		}
 		e->destroy(e);
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		get_algorithm(this, ENCRYPTION_ALGORITHM, &alg, &ks);
+		if (alg != ENCR_SM4_CBC && 
+				!get_algorithm(this, KEY_EXCHANGE_METHOD, NULL, NULL))
+#else
 		if (!get_algorithm(this, KEY_EXCHANGE_METHOD, NULL, NULL))
+#endif
 		{
 			DBG1(DBG_CFG, "a DH group is mandatory in IKE proposals");
 			return FALSE;

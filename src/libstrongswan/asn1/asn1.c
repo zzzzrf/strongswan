@@ -56,6 +56,9 @@ chunk_t asn1_algorithmIdentifier(int oid)
 		case OID_ECDSA_WITH_SHA256:
 		case OID_ECDSA_WITH_SHA384:
 		case OID_ECDSA_WITH_SHA512:
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		case OID_SM2_WITH_SM3:
+#endif
 		case OID_ED25519:
 		case OID_ED448:
 			parameters = chunk_empty;

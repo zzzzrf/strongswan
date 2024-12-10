@@ -35,6 +35,16 @@ static void print_key(private_key_t *key)
 	{
 		printf("  privkey:   %N %d bits\n", key_type_names,
 			   public->get_type(public), public->get_keysize(public));
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		if (public->get_type(public) == KEY_SM2)
+		{
+			if (public->get_fingerprint(public, KEYID_PUBKEY_INFO_SM3, &chunk))
+					printf("  keyid:     %#B\n", &chunk);
+
+			if (public->get_fingerprint(public, KEYID_PUBKEY_SM3, &chunk))
+					printf("  subjkey:   %#B\n", &chunk);
+		}
+#endif
 		if (public->get_fingerprint(public, KEYID_PUBKEY_INFO_SHA1, &chunk))
 		{
 			printf("  keyid:     %#B\n", &chunk);
@@ -100,6 +110,13 @@ static int print()
 					type = CRED_PRIVATE_KEY;
 					subtype = KEY_RSA;
 				}
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+				else if (streq(arg, "sm2"))
+				{
+					type = CRED_PRIVATE_KEY;
+					subtype = KEY_SM2;
+				}
+#endif
 				else if (streq(arg, "ecdsa") ||
 						 streq(arg, "ecdsa-priv"))
 				{

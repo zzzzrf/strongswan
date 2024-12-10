@@ -48,6 +48,9 @@ enum key_type_t {
 	KEY_ED25519 = 4,
 	/** Ed448   PureEdDSA instance as in RFC 8032 */
 	KEY_ED448   = 5,
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	KEY_SM2 = 6,
+#endif
 };
 
 /**
@@ -109,6 +112,10 @@ enum signature_scheme_t {
 	SIGN_ED25519,
 	/** PureEdDSA on Curve448 as in RFC 8410                           */
 	SIGN_ED448,
+	
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	SIGN_SM2_WITH_SM3,
+#endif
 };
 
 /**

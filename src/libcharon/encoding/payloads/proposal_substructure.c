@@ -172,6 +172,10 @@ typedef enum {
 	IKEV1_ENCR_CAST_CBC = 6,
 	IKEV1_ENCR_AES_CBC = 7,
 	IKEV1_ENCR_CAMELLIA_CBC = 8,
+
+	/* GM/T 0022-2014 */
+	IKEV1_ENCR_SM4_CBC = 129,
+
 	/* FreeS/WAN proprietary */
 	IKEV1_ENCR_SERPENT_CBC = 65004,
 	IKEV1_ENCR_TWOFISH_CBC = 65005,
@@ -187,6 +191,9 @@ typedef enum {
 	IKEV1_HASH_SHA2_256 = 4,
 	IKEV1_HASH_SHA2_384 = 5,
 	IKEV1_HASH_SHA2_512 = 6,
+
+	/* GM/T 0022-2014 */
+	IKEV1_HASH_SM3 = 20
 } ikev1_hash_t;
 
 /**
@@ -222,6 +229,10 @@ typedef enum {
 	IKEV1_ESP_ENCR_SEED_CBC = 21,
 	IKEV1_ESP_ENCR_CAMELLIA = 22,
 	IKEV1_ESP_ENCR_NULL_AUTH_AES_GMAC = 23,
+
+	/* 与华为协商时发现ESP SM4的transform ID为127 */
+	IKEV1_ESP_ENCR_SM4 = 127,
+
 	/* FreeS/WAN proprietary */
 	IKEV1_ESP_ENCR_SERPENT = 252,
 	IKEV1_ESP_ENCR_TWOFISH = 253,
@@ -243,6 +254,7 @@ typedef enum {
 	IKEV1_AH_AES_128_GMAC = 11,
 	IKEV1_AH_AES_192_GMAC = 12,
 	IKEV1_AH_AES_256_GMAC = 13,
+	IKEV1_AH_HMAC_SM3 = 20,
 } ikev1_ah_transid_t;
 
 /**
@@ -262,6 +274,7 @@ typedef enum {
 	IKEV1_AUTH_AES_128_GMAC = 11,
 	IKEV1_AUTH_AES_192_GMAC = 12,
 	IKEV1_AUTH_AES_256_GMAC = 13,
+	IKEV1_AUTH_HMAC_SM3 = 20,
 } ikev1_auth_algo_t;
 
 /**
@@ -594,6 +607,7 @@ static algo_map_t map_encr[] = {
 	{ IKEV1_ENCR_CAMELLIA_CBC,	ENCR_CAMELLIA_CBC },
 	{ IKEV1_ENCR_SERPENT_CBC,	ENCR_SERPENT_CBC },
 	{ IKEV1_ENCR_TWOFISH_CBC,	ENCR_TWOFISH_CBC },
+	{ IKEV1_ENCR_SM4_CBC,		ENCR_SM4_CBC}
 };
 
 /**
@@ -605,6 +619,7 @@ static algo_map_t map_integ[] = {
 	{ IKEV1_HASH_SHA2_256,		AUTH_HMAC_SHA2_256_128 },
 	{ IKEV1_HASH_SHA2_384,		AUTH_HMAC_SHA2_384_192 },
 	{ IKEV1_HASH_SHA2_512,		AUTH_HMAC_SHA2_512_256 },
+	{ IKEV1_HASH_SM3, 			AUTH_HMAC_SM3}
 };
 
 /**
@@ -616,6 +631,7 @@ static algo_map_t map_prf[] = {
 	{ IKEV1_HASH_SHA2_256,		PRF_HMAC_SHA2_256 },
 	{ IKEV1_HASH_SHA2_384,		PRF_HMAC_SHA2_384 },
 	{ IKEV1_HASH_SHA2_512,		PRF_HMAC_SHA2_512 },
+	{ IKEV1_HASH_SM3,			PRF_HMAC_SM3}
 };
 
 /**
@@ -644,6 +660,7 @@ static algo_map_t map_esp[] = {
 	{ IKEV1_ESP_ENCR_NULL_AUTH_AES_GMAC,	ENCR_NULL_AUTH_AES_GMAC },
 	{ IKEV1_ESP_ENCR_SERPENT,				ENCR_SERPENT_CBC },
 	{ IKEV1_ESP_ENCR_TWOFISH,				ENCR_TWOFISH_CBC },
+	{IKEV1_ESP_ENCR_SM4, 					ENCR_SM4_CBC},
 };
 
 /**
@@ -660,6 +677,7 @@ static algo_map_t map_ah[] = {
 	{ IKEV1_AH_AES_128_GMAC,	AUTH_AES_128_GMAC },
 	{ IKEV1_AH_AES_192_GMAC,	AUTH_AES_192_GMAC },
 	{ IKEV1_AH_AES_256_GMAC,	AUTH_AES_256_GMAC },
+	{	IKEV1_AH_HMAC_SM3,	AUTH_HMAC_SM3},
 };
 
 /**
@@ -677,6 +695,7 @@ static algo_map_t map_auth[] = {
 	{ IKEV1_AUTH_AES_128_GMAC,		AUTH_AES_128_GMAC },
 	{ IKEV1_AUTH_AES_192_GMAC,		AUTH_AES_192_GMAC },
 	{ IKEV1_AUTH_AES_256_GMAC,		AUTH_AES_256_GMAC },
+	{IKEV1_AUTH_HMAC_SM3,			AUTH_HMAC_SM3 },
 };
 
 /**
@@ -1318,6 +1337,13 @@ static void set_from_proposal_v1_ike(private_proposal_substructure_t *this,
 	}
 	enumerator->destroy(enumerator);
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	/* SM */
+	if (method == AUTH_ECDSA_384)
+		transform->add_transform_attribute(transform,
+			transform_attribute_create_value(PLV1_TRANSFORM_ATTRIBUTE,
+							TATTR_PH1_ASYMMETRIC_CRYPTO_ALGORITHM, 20));
+#endif
 	enumerator = proposal->create_enumerator(proposal, KEY_EXCHANGE_METHOD);
 	if (enumerator->enumerate(enumerator, &alg, &key_size))
 	{

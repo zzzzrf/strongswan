@@ -155,6 +155,7 @@ ARG_ENABL_SET([mgf1],           [enable the MGF1 software implementation plugin.
 ARG_ENABL_SET([ml],             [enable Module-Lattice-based crypto (ML-KEM) plugin.])
 ARG_DISBL_SET([nonce],          [disable nonce generation plugin.])
 ARG_DISBL_SET([openssl],        [disable the OpenSSL crypto plugin.])
+ARG_ENABL_SET([gmssl],    		[enables the GmSSL crypto plugin.])
 ARG_ENABL_SET([wolfssl],        [enables the wolfSSL crypto plugin.])
 ARG_ENABL_SET([padlock],        [enables VIA Padlock crypto plugin.])
 ARG_DISBL_SET([random],         [disable RNG implementation on top of /dev/(u)random.])
@@ -326,6 +327,8 @@ ARG_ENABL_SET([selinux],        [enable SELinux support for labeled IPsec.])
 ARG_ENABL_SET([tss-trousers],   [enable the use of the TrouSerS Trusted Software Stack])
 ARG_ENABL_SET([tss-tss2],       [enable the use of the TSS 2.0 Trusted Software Stack])
 ARG_ENABL_SET([cert-enroll-timer],[enable installation of cert-enroll as a systemd timer.])
+ARG_ENABL_SET([custom_ext],		[enable custom extension])
+ARG_ENABL_SET([custom_ext_ATTR_IKEv1_SM],		[enable custom extension for Ikev1 SM])
 
 # compile options
 ARG_ENABL_SET([asan],           [enable build with AddressSanitizer (ASan).])
@@ -368,7 +371,7 @@ fi
 # ===========================
 
 if test -z "$CFLAGS"; then
-	CFLAGS="-g -O2"
+	CFLAGS="-g -O0"
 fi
 AC_SUBST(PLUGIN_CFLAGS)
 AC_PROG_CC
@@ -1196,6 +1199,16 @@ if test x$openssl = xtrue; then
 	AC_CHECK_HEADER([openssl/evp.h],,[AC_MSG_ERROR([OpenSSL header openssl/evp.h not found!])])
 fi
 
+if test x$gmssl = xtrue; then
+	if test -z "$gmssl_lib"; then
+		gmssl_lib=gmssl
+		AC_CHECK_LIB([$gmssl_lib],[sm2_key_generate],[LIBS="$LIBS"],
+			[AC_MSG_ERROR([GmSSL lib$gmssl_lib not found])],[$DLLIB])
+	fi
+	AC_SUBST(GMSSL_LIB, [-l$gmssl_lib])
+	AC_CHECK_HEADER([gmssl/sm2.h],,[AC_MSG_ERROR([GmSSL header gmssl/sm2 not found!])])
+fi
+
 if test x$wolfssl = xtrue; then
 	PKG_CHECK_MODULES(wolfssl, [wolfssl])
 	AC_SUBST(wolfssl_CFLAGS)
@@ -1574,6 +1587,7 @@ ADD_PLUGIN([ipseckey],             [c charon])
 ADD_PLUGIN([pem],                  [s charon pki scripts manager medsrv attest nm cmd aikgen fuzz])
 ADD_PLUGIN([padlock],              [s charon])
 ADD_PLUGIN([openssl],              [s charon pki scripts manager medsrv attest nm cmd aikgen])
+ADD_PLUGIN([gmssl],       	   [s charon pki scripts manager medsrv attest nm cmd aikgen])
 ADD_PLUGIN([wolfssl],              [s charon pki scripts manager medsrv attest nm cmd aikgen])
 ADD_PLUGIN([gcrypt],               [s charon pki scripts manager medsrv attest nm cmd aikgen])
 ADD_PLUGIN([botan],                [s charon pki scripts manager medsrv attest nm cmd aikgen])
@@ -1748,6 +1762,7 @@ AM_CONDITIONAL(USE_MYSQL, test x$mysql = xtrue)
 AM_CONDITIONAL(USE_SQLITE, test x$sqlite = xtrue)
 AM_CONDITIONAL(USE_PADLOCK, test x$padlock = xtrue)
 AM_CONDITIONAL(USE_OPENSSL, test x$openssl = xtrue)
+AM_CONDITIONAL(USE_GMSSL, test x$gmssl = xtrue)
 AM_CONDITIONAL(USE_WOLFSSL, test x$wolfssl = xtrue)
 AM_CONDITIONAL(USE_GCRYPT, test x$gcrypt = xtrue)
 AM_CONDITIONAL(USE_BOTAN, test x$botan = xtrue)
@@ -1914,6 +1929,8 @@ AM_CONDITIONAL(USE_PYTHON_EGGS, test x$python_eggs = xtrue)
 AM_CONDITIONAL(USE_PERL_CPAN, test x$perl_cpan = xtrue)
 AM_CONDITIONAL(USE_TOX, test "x$TOX" != x)
 AM_CONDITIONAL(USE_PY_TEST, test "x$PY_TEST" != x -a "x$TOX" = x)
+AM_CONDITIONAL(USE_CUSTOM_EXT, test x$custom_ext = xtrue)
+AM_CONDITIONAL(USE_CUSTOM_EXT_ATTR_IKEV1_SM, test x$custom_ext_ATTR_IKEv1_SM = xtrue)
 
 # ========================
 #  set global definitions
@@ -1945,6 +1962,12 @@ if test x$fuzzing = xtrue; then
 fi
 if test x$imc_swima = xtrue -o x$imv_swima = xtrue; then
 	AC_DEFINE([USE_JSON], [], [build code for JSON])
+fi
+if test x$custom_ext = xtrue; then
+	AC_DEFINE([USE_CUSTOM_EXT], [], [build code for custom extension])
+fi
+if test x$custom_ext_ATTR_IKEv1_SM = xtrue; then
+	AC_DEFINE([USE_CUSTOM_EXT_ATTR_IKEV1_SM], [], [build code for custom extension attr ikev1 sm])
 fi
 
 # ====================================================
@@ -2029,6 +2052,7 @@ AC_CONFIG_FILES([
 	src/libstrongswan/plugins/sqlite/Makefile
 	src/libstrongswan/plugins/padlock/Makefile
 	src/libstrongswan/plugins/openssl/Makefile
+	src/libstrongswan/plugins/gmssl/Makefile
 	src/libstrongswan/plugins/wolfssl/Makefile
 	src/libstrongswan/plugins/gcrypt/Makefile
 	src/libstrongswan/plugins/botan/Makefile

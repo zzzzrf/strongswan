@@ -90,11 +90,19 @@ METHOD(ike_sa_id_t, equals, bool,
 	{
 		return FALSE;
 	}
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	return (this->ike_version & 0xF) == (other->ike_version & 0xF) &&
+		   (this->ike_version == IKEV1_MAJOR_VERSION ||
+			this->is_initiator_flag == other->is_initiator_flag) &&
+		   this->initiator_spi == other->initiator_spi &&
+		   this->responder_spi == other->responder_spi;
+#else
 	return this->ike_version == other->ike_version &&
 		   (this->ike_version == IKEV1_MAJOR_VERSION ||
 			this->is_initiator_flag == other->is_initiator_flag) &&
 		   this->initiator_spi == other->initiator_spi &&
 		   this->responder_spi == other->responder_spi;
+#endif
 }
 
 METHOD(ike_sa_id_t, replace_values, void,

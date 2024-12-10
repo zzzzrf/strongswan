@@ -21,13 +21,20 @@
 #include "public_key.h"
 #include "signature_params.h"
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+ENUM(key_type_names, KEY_ANY, KEY_SM2,
+#else
 ENUM(key_type_names, KEY_ANY, KEY_ED448,
+#endif
 	"ANY",
 	"RSA",
 	"ECDSA",
 	"DSA",
 	"ED25519",
 	"ED448",
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	"SM2",
+#endif
 );
 
 ENUM(signature_scheme_names, SIGN_UNKNOWN, SIGN_ED448,
@@ -157,6 +164,10 @@ signature_scheme_t signature_scheme_from_oid(int oid)
 			return SIGN_ED25519;
 		case OID_ED448:
 			return SIGN_ED448;
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		case OID_SM2_WITH_SM3:
+			return SIGN_SM2_WITH_SM3;
+#endif
 	}
 	return SIGN_UNKNOWN;
 }
@@ -209,6 +220,10 @@ int signature_scheme_to_oid(signature_scheme_t scheme)
 			return OID_ED25519;
 		case SIGN_ED448:
 			return OID_ED448;
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		case SIGN_SM2_WITH_SM3:
+			return OID_SM2_WITH_SM3;
+#endif
 	}
 	return OID_UNKNOWN;
 }
@@ -335,6 +350,10 @@ key_type_t key_type_from_signature_scheme(signature_scheme_t scheme)
 			return KEY_ED25519;
 		case SIGN_ED448:
 			return KEY_ED448;
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+		case SIGN_SM2_WITH_SM3:
+			return KEY_SM2;
+#endif
 	}
 	return KEY_ANY;
 }

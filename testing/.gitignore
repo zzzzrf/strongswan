@@ -1,3 +1,5 @@
 do-tests
 testing.conf.local
 tests/local/
+tests/openssl-ikev1/
+tests/openssl-ikev2/

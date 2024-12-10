@@ -40,6 +40,9 @@ enum cert_encoding_t {
 	ENC_PGP =						 2,
 	ENC_DNS_SIGNED_KEY =			 3,
 	ENC_X509_SIGNATURE =			 4,
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	ENC_X509_KEY_EXCHANGE =		 5,
+#endif
 	ENC_KERBEROS_TOKEN	=			 6,
 	ENC_CRL =						 7,
 	ENC_ARL =						 8,
@@ -86,6 +89,10 @@ struct cert_payload_t {
 	 * @return				encoding
 	 */
 	cert_encoding_t (*get_cert_encoding)(cert_payload_t *this);
+
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	chunk_t (*get_encoding)(cert_payload_t *this);
+#endif
 
 	/**
 	 * Get the hash if this is a hash and URL encoded certificate.

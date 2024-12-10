@@ -127,6 +127,11 @@ enum auth_rule_t {
 	/** attribute certificate for authorization decisions, certificate_t */
 	AUTH_HELPER_AC_CERT,
 
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	AUTH_HELPER_SM_ENC_CERT,
+	AUTH_HELPER_SM_SIG_CERT,
+#endif
+
 	/** helper to determine the number of elements in this enum */
 	AUTH_RULE_MAX,
 };

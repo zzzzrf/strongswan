@@ -241,7 +241,17 @@ CALLBACK(load_key, vici_message_t*,
 		return create_reply("parsing %N private key failed",
 							key_type_names, type);
 	}
+
+#if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
+	cred_encoding_type_t encodeing_type = KEYID_PUBKEY_SHA1;
+	
+	if (key->get_type(key) == KEY_SM2)
+		encodeing_type = KEYID_PUBKEY_SM3;
+
+	if (!key->get_fingerprint(key, encodeing_type, &fp))
+#else
 	if (!key->get_fingerprint(key, KEYID_PUBKEY_SHA1, &fp))
+#endif
 	{
 		return create_reply("failed to get key id");
 	}

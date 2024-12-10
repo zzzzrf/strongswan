@@ -289,12 +289,56 @@ static void usage(const char *msg)
 					"         [--help]\n"
 					"         [--version]\n"
 					"         [--use-syslog]\n"
+					"         [--daemon]\n"
 					"         [--debug-<type> <level>]\n"
 					"           <type>:  log context type (dmn|mgr|ike|chd|job|cfg|knl|net|asn|enc|tnc|imc|imv|pts|tls|esp|lib)\n"
 					"           <level>: log verbosity (-1 = silent, 0 = audit, 1 = control,\n"
 					"                                    2 = controlmore, 3 = raw, 4 = private)\n"
 					"\n"
 		   );
+}
+
+/**
+ * 	If you don’t use 'starter' to start 'charon', you can use this to make
+ * 'charon' itself a daemon.
+ */
+static int init_daemon(void)
+{
+	DBG1(DBG_DMN, "make charon itself a daemon");
+
+	switch (fork())
+	{
+		case 0:
+		{
+			int fnull;
+			fnull = open("/dev/null", O_RDWR);
+			if (fnull >= 0) {
+				dup2(fnull, STDIN_FILENO);
+				dup2(fnull, STDOUT_FILENO);
+				dup2(fnull, STDERR_FILENO);
+				close(fnull);
+			}
+			setsid();
+		}
+		break;
+		case -1:
+			DBG1(DBG_DMN, "can't fork: %s", strerror(errno));
+		default:
+			exit(0);
+	}
+
+	switch (fork())
+	{
+		case 0:
+			setsid();
+		break;
+		case -1:
+			DBG1(DBG_DMN, "can't fork: %s", strerror(errno));
+		default:
+			exit(0);
+	}
+
+	return 0;
 }
 
 /**
@@ -307,6 +351,7 @@ int main(int argc, char *argv[])
 	struct utsname utsname;
 	level_t levels[DBG_MAX];
 	bool use_syslog = FALSE;
+	bool daemon = FALSE;
 
 	/* logging for library during initialization, as we have no bus yet */
 	dbg = dbg_stderr;
@@ -345,6 +390,7 @@ int main(int argc, char *argv[])
 			{ "help", no_argument, NULL, 'h' },
 			{ "version", no_argument, NULL, 'v' },
 			{ "use-syslog", no_argument, NULL, 'l' },
+			{ "daemon", no_argument, NULL, 'd'},
 			/* TODO: handle "debug-all" */
 			{ "debug-dmn", required_argument, &group, DBG_DMN },
 			{ "debug-mgr", required_argument, &group, DBG_MGR },
@@ -382,6 +428,9 @@ int main(int argc, char *argv[])
 			case 'l':
 				use_syslog = TRUE;
 				continue;
+			case 'd':
+				daemon = TRUE;
+				continue;
 			case 0:
 				/* option is in group */
 				levels[group] = atoi(optarg);
@@ -393,6 +442,9 @@ int main(int argc, char *argv[])
 		}
 		break;
 	}
+
+	if (daemon)
+		init_daemon();
 
 	if (!lookup_uid_gid())
 	{

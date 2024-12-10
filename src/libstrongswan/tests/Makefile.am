@@ -70,6 +70,12 @@ libstrongswan_tests_SOURCES = tests.h tests.c \
   suites/test_metadata.c \
   suites/test_metadata_set.c
 
+if USE_CUSTOM_EXT
+if USE_CUSTOM_EXT_ATTR_IKEV1_SM
+libstrongswan_tests_SOURCES += suites/test_sm2.c
+endif
+endif
+
 libstrongswan_tests_CFLAGS = \
   -I$(top_srcdir)/src/libstrongswan \
   -I$(top_srcdir)/src/libstrongswan/tests \
