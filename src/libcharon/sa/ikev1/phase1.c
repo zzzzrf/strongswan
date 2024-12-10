@@ -913,7 +913,7 @@ METHOD(XCH_SIG_t, parse_sk_payload, bool,
 	keyid->destroy(keyid);
 
 	privkey->decrypt(privkey, ENCRYPT_RSA_PKCS1, NULL, sk_encrypted, &this->sk);
-	DBG1(DBG_IKE, "sk : %B", &this->sk);
+	DBG2(DBG_IKE, "sk : %B", &this->sk);
 
 	if (this->aead->set_key(this->aead, this->sk) != TRUE)
 	{
@@ -1281,7 +1281,7 @@ static XCH_SIG_t *XCH_SIG_create(private_phase1_t *phase1, proposal_t *proposal)
 
 	this->next_iv = chunk_alloc(this->aead->get_block_size(this->aead));
 	memset(this->next_iv.ptr, 0, this->next_iv.len);
-	DBG1(DBG_IKE, "init iv : %B", &this->next_iv);
+	DBG2(DBG_IKE, "init iv : %B", &this->next_iv);
 	return &this->public;
 }
 

@@ -430,10 +430,10 @@ METHOD(keymat_v1_t, derive_ikesm_keys, bool,
 	chunk_t nonces, spi_i, spi_r, data, hash, skeyid_e;
 	chunk_t skeyid, ka;
 
-	DBG4(DBG_IKE, "nonce_i : %B\n", &nonce_i);
-	DBG4(DBG_IKE, "nonce_r : %B\n", &nonce_r);
-	DBG4(DBG_IKE, "sk_i : %B\n", &ski);
-	DBG4(DBG_IKE, "sk_r : %B\n", &skr);
+	DBG4(DBG_IKE, "nonce_i : %B", &nonce_i);
+	DBG4(DBG_IKE, "nonce_r : %B", &nonce_r);
+	DBG4(DBG_IKE, "sk_i : %B", &ski);
+	DBG4(DBG_IKE, "sk_r : %B", &skr);
 
 	nonces = chunk_cata("cc", nonce_i, nonce_r);
 	if (this->hasher->allocate_hash(this->hasher, nonces, &hash) != TRUE)
