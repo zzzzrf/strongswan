@@ -922,7 +922,6 @@ METHOD(XCH_SIG_t, parse_sk_payload, bool,
 	}
 
 	chunk_clear(&sk_encrypted);
-	chunk_clear(&pubkey_figerprint);
 	pubkey->destroy(pubkey);
 	privkey->destroy(privkey);
 	return ret;
@@ -1149,7 +1148,6 @@ METHOD(XCH_SIG_t, gen_sig_payload, hash_payload_t *,
 	pubkey->destroy(pubkey);
 
  	keyid = identification_create_from_encoding(ID_KEY_ID, fingerprint);
-	chunk_clear(&fingerprint);
 	sig_key = lib->credmgr->get_private(lib->credmgr, KEY_SM2, keyid, NULL);
 	keyid->destroy(keyid);
 	
