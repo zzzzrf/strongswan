@@ -567,8 +567,8 @@ static status_t prepare_sm_certs_by_auth_cfg(private_isakmp_cert_pre_t *this, me
 			DBG1(DBG_IKE, "sm enc/sig certs not found");
 			return FAILED;
 		}
-		auth->add(auth, AUTH_HELPER_SM_ENC_CERT, cert_e);
-		auth->add(auth, AUTH_HELPER_SM_SIG_CERT, cert_s);
+		auth->add(auth, AUTH_HELPER_SM_ENC_CERT, cert_e->get_ref(cert_e));
+		auth->add(auth, AUTH_HELPER_SM_SIG_CERT, cert_s->get_ref(cert_s));
 		DBG2(DBG_IKE, "prepare sm enc cert: %Y", cert_e->get_subject(cert_e));
 		DBG2(DBG_IKE, "prepare sm sig cert: %Y", cert_e->get_subject(cert_e));
 	}
