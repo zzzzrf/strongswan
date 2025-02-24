@@ -1765,6 +1765,9 @@ static void manage_commands(private_vici_query_t *this, bool reg)
 	this->dispatcher->manage_event(this->dispatcher, "ike-update", reg);
 	this->dispatcher->manage_event(this->dispatcher, "child-updown", reg);
 	this->dispatcher->manage_event(this->dispatcher, "child-rekey", reg);
+#if defined (USE_CUSTOM_EXT)
+	this->dispatcher->manage_event(this->dispatcher, "alert", reg);
+#endif
 	manage_command(this, "list-sas", list_sas, reg);
 	manage_command(this, "list-policies", list_policies, reg);
 	manage_command(this, "list-conns", list_conns, reg);
@@ -1944,6 +1947,29 @@ METHOD(listener_t, child_rekey, bool,
 	return TRUE;
 }
 
+#if defined (USE_CUSTOM_EXT)
+METHOD(listener_t, alert, bool,
+	private_vici_query_t *this, ike_sa_t *ike_sa, alert_t alert, va_list args)
+{
+	vici_builder_t *b;
+
+	if (!this->dispatcher->has_event_listeners(this->dispatcher, "alert"))
+	{
+		return TRUE;
+	}
+
+	b = vici_builder_create();
+	b->begin_section(b, ike_sa->get_name(ike_sa));
+	b->add_kv(b, "alert", "%d", alert);
+	b->end_section(b);
+
+	this->dispatcher->raise_event(this->dispatcher,
+								  "alert", 0, b->finalize(b));
+
+	return TRUE;
+}
+#endif
+
 METHOD(vici_query_t, destroy, void,
 	private_vici_query_t *this)
 {
@@ -1966,6 +1992,9 @@ vici_query_t *vici_query_create(vici_dispatcher_t *dispatcher)
 				.ike_update = _ike_update,
 				.child_updown = _child_updown,
 				.child_rekey = _child_rekey,
+#if defined (USE_CUSTOM_EXT)
+				.alert = _alert,
+#endif
 			},
 			.destroy = _destroy,
 		},
