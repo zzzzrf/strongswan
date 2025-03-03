@@ -1959,7 +1959,7 @@ METHOD(listener_t, alert, bool,
 	}
 
 	b = vici_builder_create();
-	b->begin_section(b, ike_sa->get_name(ike_sa));
+	b->begin_section(b, ike_sa ? ike_sa->get_name(ike_sa) : "unnamed");
 	b->add_kv(b, "alert", "%d", alert);
 	b->end_section(b);
 
