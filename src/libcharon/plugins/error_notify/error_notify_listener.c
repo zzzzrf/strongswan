@@ -248,6 +248,10 @@ METHOD(listener_t, alert, bool,
 			break;
 		case ALERT_SHUTDOWN_SIGNAL:
 			return TRUE;
+#if defined (USE_CUSTOM_EXT)
+		case ALERT_DPD_TIMEOUT:
+			return TRUE;
+#endif
 	}
 
 	if (ike_sa)
