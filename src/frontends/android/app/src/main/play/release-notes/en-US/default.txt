@@ -1,13 +1,18 @@
-# 2.5.2 #
+# 2.5.6 #
 
-- Increased target SDK to Android 14
-- Due to a bug in Android 14, a new permission is necessary to start a profile in the background from the status tile
-- Fix crash when listing installed apps for new profiles
+- Add support for custom HTTP proxy server (Android 10+)
 
-# 2.5.1 #
+# 2.5.5 #
 
-- Fix for existing shortcuts and automation via Intents
+- Fix initiating managed profiles as Always-on VPN
 
-# 2.5.0 #
+# 2.5.4 #
 
-- Support for managed configurations via enterprise mobility management (EMM)
+- Fix issues when reestablishing the connection
+
+# 2.5.3 #
+
+- Add support for distributing passwords in managed profiles
+- Add support for importing profile files with passwords
+- Fix crash when editing password of managed profiles
+- Fix crash when re-importing an already existing profile

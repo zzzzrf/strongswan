@@ -85,6 +85,8 @@
     <string name="managed_config_local_bundle_description">Specifies information about the client</string>
     <string name="managed_config_local_eap_id_title">Identity/username for EAP authentication (Optional)</string>
     <string name="managed_config_local_eap_id_description">If this is required (for username/password-based EAP authentication) but not configured here, the user is prompted for it. If it is set, the user is not able to change it. In both cases the user may optionally enter the password</string>
+    <string name="managed_config_local_eap_password_title">Password for EAP authentication (Optional)</string>
+    <string name="managed_config_local_eap_password_description">If this is required (for username/password-based EAP authentication) but not configured here, the user is prompted for it and may store it locally</string>
     <string name="managed_config_local_id_title">@string/profile_local_id_label</string>
     <string name="managed_config_local_id_description">@string/profile_local_id_hint_user</string>
     <string name="managed_config_local_p12_title">@string/profile_user_certificate_label</string>
@@ -106,4 +108,13 @@
     <string name="managed_config_split_tunneling_block_ipv6_title">@string/profile_split_tunnelingv6_title</string>
     <string name="managed_config_split_tunneling_block_ipv6_description">Specifies whether to block IPv6 traffic that\'s not destined for the VPN. Forces all IPv6 traffic via VPN (traffic that does not match the negotiated traffic selector is then just dropped). Thus this is basically equivalent to including ::/0 in subnets</string>
 
+    <!-- Managed configuration, VPN profile, proxy server -->
+    <string name="managed_config_proxy_server_bundle_title">@string/profile_proxy_server_label</string>
+    <string name="managed_config_proxy_server_bundle_description">@string/profile_proxy_server_intro</string>
+    <string name="managed_config_proxy_host_title">@string/profile_proxy_host_label</string>
+    <string name="managed_config_proxy_host_description">@string/profile_proxy_host_hint</string>
+    <string name="managed_config_proxy_port_title">@string/profile_proxy_port_label</string>
+    <string name="managed_config_proxy_port_description">@string/profile_proxy_port_hint</string>
+    <string name="managed_config_proxy_exclusions_title">@string/profile_proxy_exclusions_label</string>
+    <string name="managed_config_proxy_exclusions_description">@string/profile_proxy_exclusions_hint</string>
 </resources>
