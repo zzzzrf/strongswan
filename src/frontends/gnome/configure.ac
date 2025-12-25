@@ -1,6 +1,6 @@
 AC_PREREQ([2.69])
 
-AC_INIT([NetworkManager-strongswan],[1.6.0],[info@strongswan.org],[NetworkManager-strongswan])
+AC_INIT([NetworkManager-strongswan],[1.6.4],[info@strongswan.org],[NetworkManager-strongswan])
 AM_INIT_AUTOMAKE([subdir-objects])
 AM_MAINTAINER_MODE
 
@@ -35,8 +35,9 @@ AC_PROG_GCC_TRADITIONAL
 AC_FUNC_MEMCMP
 AC_CHECK_FUNCS(select socket uname)
 
-AC_SEARCH_LIBS([dlopen], [dl dld], [], [ac_cv_search_dlopen=])
-AC_SUBST([DL_LIBS], "$ac_cv_search_dlopen")
+LIBS=""
+AC_SEARCH_LIBS([dlopen], [dl dld], [DL_LIBS=$LIBS])
+AC_SUBST([DL_LIBS])
 
 AM_GNU_GETTEXT_VERSION([0.19])
 AM_GNU_GETTEXT([external])
@@ -77,8 +78,6 @@ AC_ARG_WITH(
 AM_CONDITIONAL(WITH_GTK4, test "$with_gtk4" != no)
 
 PKG_CHECK_MODULES(LIBNM, libnm >= 1.1.0)
-LIBNM_CFLAGS="$LIBNM_CFLAGS -DNM_VERSION_MIN_REQUIRED=NM_VERSION_1_2"
-LIBNM_CFLAGS="$LIBNM_CFLAGS -DNM_VERSION_MAX_ALLOWED=NM_VERSION_1_2"
 PKG_CHECK_MODULES(LIBNMA, libnma >= 1.1.0)
 
 if test x"$with_gtk4" != xno; then

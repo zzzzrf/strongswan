@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
+    Copyright (C) 2025 Tobias Brunner
     Copyright (C) 2023 Relution GmbH
 
     Copyright (C) secunet Security Networks AG
@@ -178,6 +179,13 @@
 
                 <restriction
                     android:defaultValue=""
+                    android:description="@string/managed_config_local_eap_password_description"
+                    android:key="password"
+                    android:restrictionType="string"
+                    android:title="@string/managed_config_local_eap_password_title" />
+
+                <restriction
+                    android:defaultValue=""
                     android:description="@string/managed_config_local_id_description"
                     android:key="local_id"
                     android:restrictionType="string"
@@ -196,6 +204,13 @@
                     android:key="user_certificate_password"
                     android:restrictionType="string"
                     android:title="@string/managed_config_local_p12_password_title" />
+
+                <restriction
+                    android:defaultValue=""
+                    android:description="@string/managed_config_local_user_certificate_alias_description"
+                    android:key="user_certificate_alias"
+                    android:restrictionType="string"
+                    android:title="@string/managed_config_local_user_certificate_alias_title" />
 
                 <restriction
                     android:defaultValue="false"
@@ -264,7 +279,7 @@
 
             <restriction
                 android:description="@string/managed_config_split_tunneling_bundle_description"
-                android:key="split_tunnelling"
+                android:key="split_tunneling"
                 android:restrictionType="bundle"
                 android:title="@string/managed_config_split_tunneling_bundle_title">
 
@@ -295,6 +310,35 @@
                     android:key="split_tunnelling_block_IPv6"
                     android:restrictionType="bool"
                     android:title="@string/managed_config_split_tunneling_block_ipv6_title" />
+
+            </restriction>
+
+            <restriction
+                android:description="@string/managed_config_proxy_server_bundle_description"
+                android:key="proxy_server"
+                android:restrictionType="bundle"
+                android:title="@string/managed_config_proxy_server_bundle_title">
+
+                <restriction
+                    android:defaultValue=""
+                    android:description="@string/managed_config_proxy_host_description"
+                    android:key="proxy_host"
+                    android:restrictionType="string"
+                    android:title="@string/managed_config_proxy_host_title" />
+
+                <restriction
+                    android:defaultValue="-1"
+                    android:description="@string/managed_config_proxy_port_description"
+                    android:key="proxy_port"
+                    android:restrictionType="integer"
+                    android:title="@string/managed_config_proxy_port_title" />
+
+                <restriction
+                    android:defaultValue=""
+                    android:description="@string/managed_config_proxy_exclusions_description"
+                    android:key="proxy_exclusions"
+                    android:restrictionType="string"
+                    android:title="@string/managed_config_proxy_exclusions_title" />
 
             </restriction>
 

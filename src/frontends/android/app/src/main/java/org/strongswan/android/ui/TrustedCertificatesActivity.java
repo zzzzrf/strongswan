@@ -41,6 +41,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.WindowCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
@@ -71,6 +72,7 @@ public class TrustedCertificatesActivity extends AppCompatActivity implements Tr
 	{
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.trusted_certificates_activity);
+		WindowCompat.enableEdgeToEdge(getWindow());
 
 		ActionBar actionBar = getSupportActionBar();
 		actionBar.setDisplayHomeAsUpEnabled(true);

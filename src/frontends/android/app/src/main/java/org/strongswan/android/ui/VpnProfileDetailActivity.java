@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2023 Relution GmbH
- * Copyright (C) 2012-2020 Tobias Brunner
+ * Copyright (C) 2012-2025 Tobias Brunner
  * Copyright (C) 2012 Giuliano Grassi
  * Copyright (C) 2012 Ralf Sager
  *
@@ -54,6 +54,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 import org.strongswan.android.R;
+import org.strongswan.android.data.ManagedVpnProfile;
 import org.strongswan.android.data.VpnProfile;
 import org.strongswan.android.data.VpnProfile.SelectedAppsHandling;
 import org.strongswan.android.data.VpnProfileDataSource;
@@ -84,6 +85,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDialogFragment;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.core.text.HtmlCompat;
+import androidx.core.view.WindowCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 public class VpnProfileDetailActivity extends AppCompatActivity
@@ -147,6 +149,10 @@ public class VpnProfileDetailActivity extends AppCompatActivity
 	private TextView mProfileId;
 	private EditText mDnsServers;
 	private TextInputLayoutHelper mDnsServersWrap;
+	private EditText mProxyHost;
+	private EditText mProxyPort;
+	private TextInputLayoutHelper mProxyPortWrap;
+	private EditText mProxyExclusions;
 
 	private final ActivityResultLauncher<Intent> mInstallPKCS12 = registerForActivityResult(
 		new ActivityResultContracts.StartActivityForResult(),
@@ -195,6 +201,7 @@ public class VpnProfileDetailActivity extends AppCompatActivity
 		mDataSource.open();
 
 		setContentView(R.layout.profile_detail_view);
+		WindowCompat.enableEdgeToEdge(getWindow());
 
 		mManagedProfile = findViewById(R.id.managed_profile);
 
@@ -253,6 +260,11 @@ public class VpnProfileDetailActivity extends AppCompatActivity
 		mEspProposalWrap = findViewById(R.id.esp_proposal_wrap);
 		/* make the link clickable */
 		((TextView)findViewById(R.id.proposal_intro)).setMovementMethod(LinkMovementMethod.getInstance());
+
+		mProxyHost = findViewById(R.id.proxy_host);
+		mProxyPort = findViewById(R.id.proxy_port);
+		mProxyPortWrap = findViewById(R.id.proxy_port_wrap);
+		mProxyExclusions = findViewById(R.id.proxy_exclusions);
 
 		mProfileIdLabel = findViewById(R.id.profile_id_label);
 		mProfileId = findViewById(R.id.profile_id);
@@ -584,7 +596,9 @@ public class VpnProfileDetailActivity extends AppCompatActivity
 				   mProfile.getIncludedSubnets() != null || mProfile.getExcludedSubnets() != null ||
 				   mProfile.getSelectedAppsHandling() != SelectedAppsHandling.SELECTED_APPS_DISABLE ||
 				   mProfile.getIkeProposal() != null || mProfile.getEspProposal() != null ||
-				   mProfile.getDnsServers() != null || mProfile.getLocalId() != null;
+				   mProfile.getDnsServers() != null || mProfile.getLocalId() != null ||
+				   mProfile.getProxyHost() != null || mProfile.getProxyPort() != null ||
+				   mProfile.getProxyExclusions() != null;
 		}
 		mShowAdvanced.setVisibility(!show ? View.VISIBLE : View.GONE);
 		mAdvancedSettings.setVisibility(show ? View.VISIBLE : View.GONE);
@@ -700,6 +714,11 @@ public class VpnProfileDetailActivity extends AppCompatActivity
 			mDnsServersWrap.setError(getString(R.string.alert_text_no_ips));
 			valid = false;
 		}
+		if (!validateInteger(mProxyPort, 1, 65535))
+		{
+			mProxyPortWrap.setError(String.format(getString(R.string.alert_text_out_of_range), 1, 65535));
+			valid = false;
+		}
 		return valid;
 	}
 
@@ -749,6 +768,9 @@ public class VpnProfileDetailActivity extends AppCompatActivity
 		mProfile.setIkeProposal(getString(mIkeProposal));
 		mProfile.setEspProposal(getString(mEspProposal));
 		mProfile.setDnsServers(getString(mDnsServers));
+		mProfile.setProxyHost(getString(mProxyHost));
+		mProfile.setProxyPort(getInteger(mProxyPort));
+		mProfile.setProxyExclusions(getString(mProxyExclusions));
 	}
 
 	/**
@@ -786,6 +808,9 @@ public class VpnProfileDetailActivity extends AppCompatActivity
 				mIkeProposal.setText(mProfile.getIkeProposal());
 				mEspProposal.setText(mProfile.getEspProposal());
 				mDnsServers.setText(mProfile.getDnsServers());
+				mProxyHost.setText(mProfile.getProxyHost());
+				mProxyPort.setText(mProfile.getProxyPort() != null ? mProfile.getProxyPort().toString() : null);
+				mProxyExclusions.setText(mProfile.getProxyExclusions());
 				mProfileId.setText(mProfile.getUUID().toString());
 				flags = mProfile.getFlags();
 				useralias = mProfile.getUserCertificateAlias();
@@ -793,7 +818,7 @@ public class VpnProfileDetailActivity extends AppCompatActivity
 				alias = mProfile.getCertificateAlias();
 				getSupportActionBar().setTitle(mProfile.getName());
 
-				setReadOnly(mProfile.isReadOnly());
+				setReadOnly(mProfile);
 			}
 			else
 			{
@@ -858,8 +883,10 @@ public class VpnProfileDetailActivity extends AppCompatActivity
 		}
 	}
 
-	private void setReadOnly(final boolean readOnly)
+	private void setReadOnly(final VpnProfile profile)
 	{
+		final boolean readOnly = profile.isReadOnly();
+
 		mManagedProfile.setVisibility(readOnly ? View.VISIBLE : View.GONE);
 
 		mName.setEnabled(!readOnly);
@@ -877,6 +904,9 @@ public class VpnProfileDetailActivity extends AppCompatActivity
 		mIkeProposal.setEnabled(!readOnly);
 		mEspProposal.setEnabled(!readOnly);
 		mDnsServers.setEnabled(!readOnly);
+		mProxyHost.setEnabled(!readOnly);
+		mProxyPort.setEnabled(!readOnly);
+		mProxyExclusions.setEnabled(!readOnly);
 
 		mSelectVpnType.setEnabled(!readOnly);
 		mCertReq.setEnabled(!readOnly);
@@ -893,8 +923,12 @@ public class VpnProfileDetailActivity extends AppCompatActivity
 
 		if (readOnly)
 		{
+			ManagedVpnProfile managedProfile = (ManagedVpnProfile)profile;
 			mSelectCert.setOnClickListener(null);
-			mSelectUserCert.setOnClickListener(null);
+			if (managedProfile.getUserCertificate() != null)
+			{
+				mSelectUserCert.setOnClickListener(null);
+			}
 		}
 	}
 

@@ -82,6 +82,42 @@ ENUM(vici_counter_type_names,
 	"info-out-resp",
 );
 
+ENUM(alert_names, ALERT_RADIUS_NOT_RESPONDING, ALERT_CERT_POLICY_VIOLATION,
+	"radius-not-responding",
+	"shutdown-signal",
+	"local-auth-failed",
+	"peer-auth-failed",
+	"peer-addr-failed",
+	"peer-init-unreachable",
+	"invalid-ike-spi",
+	"parse-error-header",
+	"parse-error-body",
+	"retransmit-send",
+	"retransmit-send-cleared",
+	"retransmit-send-timeout",
+	"retransmit-receive",
+	"half-open-timeout",
+	"proposal-mismatch-ike",
+	"proposal-mismatch-child",
+	"ts-mismatch",
+	"ts-narrowed",
+	"install-child-sa-failed",
+	"install-child-policy-failed",
+	"unique-replace",
+	"unique-keep",
+	"keep-on-child-sa-failure",
+	"vip-failure",
+	"authorization-failed",
+	"ike-sa-expired",
+	"cert-expired",
+	"cert-revoked",
+	"cert-validation-failed",
+	"cert-no-issuer",
+	"cert-untrusted-root",
+	"cert-exceeded-path-len",
+	"cert-policy-violation",
+);
+
 typedef struct private_vici_query_t private_vici_query_t;
 
 /**
@@ -200,7 +236,7 @@ static void list_child_ipsec(vici_builder_t *b, child_sa_t *child)
 {
 	proposal_t *proposal;
 	uint16_t alg, ks;
-	uint32_t if_id;
+	uint32_t if_id, cpu;
 
 	b->add_kv(b, "protocol", "%N", protocol_id_names,
 			  child->get_protocol(child));
@@ -228,6 +264,15 @@ static void list_child_ipsec(vici_builder_t *b, child_sa_t *child)
 	if (if_id)
 	{
 		b->add_kv(b, "if-id-out", "%.8x", if_id);
+	}
+	if (child->use_per_cpu(child))
+	{
+		b->add_kv(b, "per-cpu-sas", "yes");
+	}
+	cpu = child->get_cpu(child);
+	if (cpu != CPU_ID_MAX)
+	{
+		b->add_kv(b, "cpu", "%u", cpu);
 	}
 
 	proposal = child->get_proposal(child);
@@ -629,6 +674,7 @@ static void raise_policy(private_vici_query_t *this, u_int id, char *ike,
 	snprintf(buf, sizeof(buf), "%s/%s", ike, child->get_name(child));
 	b->begin_section(b, buf);
 	b->add_kv(b, "child", "%s", child->get_name(child));
+	b->add_kv(b, "reqid", "%u", child->get_reqid(child));
 	b->add_kv(b, "ike", "%s", ike);
 
 	list_mode(b, child, NULL);
@@ -684,7 +730,7 @@ static void raise_policy_cfg(private_vici_query_t *this, u_int id, char *ike,
 	list_label(b, NULL, cfg);
 
 	b->begin_list(b, "local-ts");
-	list = cfg->get_traffic_selectors(cfg, TRUE, NULL, NULL, FALSE);
+	list = cfg->get_traffic_selectors(cfg, TRUE, NULL);
 	enumerator = list->create_enumerator(list);
 	while (enumerator->enumerate(enumerator, &ts))
 	{
@@ -695,7 +741,7 @@ static void raise_policy_cfg(private_vici_query_t *this, u_int id, char *ike,
 	b->end_list(b /* local-ts */);
 
 	b->begin_list(b, "remote-ts");
-	list = cfg->get_traffic_selectors(cfg, FALSE, NULL, NULL, FALSE);
+	list = cfg->get_traffic_selectors(cfg, FALSE, NULL);
 	enumerator = list->create_enumerator(list);
 	while (enumerator->enumerate(enumerator, &ts))
 	{
@@ -946,14 +992,19 @@ CALLBACK(list_conns, vici_message_t*,
 		tokens->destroy(tokens);
 		b->end_list(b);
 
+		b->add_kv(b, "local_port", "%u",
+				  ike_cfg->get_my_port(ike_cfg));
+		b->add_kv(b, "remote_port", "%u",
+				  ike_cfg->get_other_port(ike_cfg));
+
 		b->add_kv(b, "version", "%N", ike_version_names,
-			peer_cfg->get_ike_version(peer_cfg));
+				  peer_cfg->get_ike_version(peer_cfg));
 		b->add_kv(b, "reauth_time", "%u",
-			peer_cfg->get_reauth_time(peer_cfg, FALSE));
+				  peer_cfg->get_reauth_time(peer_cfg, FALSE));
 		b->add_kv(b, "rekey_time", "%u",
-			peer_cfg->get_rekey_time(peer_cfg, FALSE));
+				  peer_cfg->get_rekey_time(peer_cfg, FALSE));
 		b->add_kv(b, "unique", "%N", unique_policy_names,
-			peer_cfg->get_unique_policy(peer_cfg));
+				  peer_cfg->get_unique_policy(peer_cfg));
 
 		dpd_delay = peer_cfg->get_dpd(peer_cfg);
 		if (dpd_delay)
@@ -972,7 +1023,7 @@ CALLBACK(list_conns, vici_message_t*,
 		{
 			b->add_kv(b, "ppk_id", "%Y", ppk_id);
 		}
-		if (peer_cfg->ppk_required(peer_cfg))
+		if (peer_cfg->has_option(peer_cfg, OPT_PPK_REQUIRED))
 		{
 			b->add_kv(b, "ppk_required", "yes");
 		}
@@ -1002,8 +1053,7 @@ CALLBACK(list_conns, vici_message_t*,
 					  child_cfg->get_close_action(child_cfg));
 
 			b->begin_list(b, "local-ts");
-			list = child_cfg->get_traffic_selectors(child_cfg, TRUE, NULL,
-													NULL, FALSE);
+			list = child_cfg->get_traffic_selectors(child_cfg, TRUE, NULL);
 			selectors = list->create_enumerator(list);
 			while (selectors->enumerate(selectors, &ts))
 			{
@@ -1014,8 +1064,7 @@ CALLBACK(list_conns, vici_message_t*,
 			b->end_list(b /* local-ts */);
 
 			b->begin_list(b, "remote-ts");
-			list = child_cfg->get_traffic_selectors(child_cfg, FALSE, NULL,
-													NULL, FALSE);
+			list = child_cfg->get_traffic_selectors(child_cfg, FALSE, NULL);
 			selectors = list->create_enumerator(list);
 			while (selectors->enumerate(selectors, &ts))
 			{
@@ -1627,14 +1676,14 @@ CALLBACK(stats, vici_message_t*,
 
 	b->begin_section(b, "workers");
 	b->add_kv(b, "total", "%d",
-		lib->processor->get_total_threads(lib->processor));
+			  lib->processor->get_total_threads(lib->processor));
 	b->add_kv(b, "idle", "%d",
-		lib->processor->get_idle_threads(lib->processor));
+			  lib->processor->get_idle_threads(lib->processor));
 	b->begin_section(b, "active");
 	for (i = 0; i < JOB_PRIO_MAX; i++)
 	{
 		b->add_kv(b, enum_to_name(job_priority_names, i), "%d",
-			lib->processor->get_working_threads(lib->processor, i));
+				  lib->processor->get_working_threads(lib->processor, i));
 	}
 	b->end_section(b);
 	b->end_section(b);
@@ -1643,12 +1692,12 @@ CALLBACK(stats, vici_message_t*,
 	for (i = 0; i < JOB_PRIO_MAX; i++)
 	{
 		b->add_kv(b, enum_to_name(job_priority_names, i), "%d",
-			lib->processor->get_job_load(lib->processor, i));
+				  lib->processor->get_job_load(lib->processor, i));
 	}
 	b->end_section(b);
 
 	b->add_kv(b, "scheduled", "%d",
-		lib->scheduler->get_job_load(lib->scheduler));
+			  lib->scheduler->get_job_load(lib->scheduler));
 
 	b->begin_section(b, "ikesas");
 	b->add_kv(b, "total", "%u",
@@ -1765,9 +1814,7 @@ static void manage_commands(private_vici_query_t *this, bool reg)
 	this->dispatcher->manage_event(this->dispatcher, "ike-update", reg);
 	this->dispatcher->manage_event(this->dispatcher, "child-updown", reg);
 	this->dispatcher->manage_event(this->dispatcher, "child-rekey", reg);
-#if defined (USE_CUSTOM_EXT)
 	this->dispatcher->manage_event(this->dispatcher, "alert", reg);
-#endif
 	manage_command(this, "list-sas", list_sas, reg);
 	manage_command(this, "list-policies", list_policies, reg);
 	manage_command(this, "list-conns", list_conns, reg);
@@ -1947,7 +1994,6 @@ METHOD(listener_t, child_rekey, bool,
 	return TRUE;
 }
 
-#if defined (USE_CUSTOM_EXT)
 METHOD(listener_t, alert, bool,
 	private_vici_query_t *this, ike_sa_t *ike_sa, alert_t alert, va_list args)
 {
@@ -1959,16 +2005,20 @@ METHOD(listener_t, alert, bool,
 	}
 
 	b = vici_builder_create();
-	b->begin_section(b, ike_sa ? ike_sa->get_name(ike_sa) : "unnamed");
-	b->add_kv(b, "alert", "%d", alert);
-	b->end_section(b);
+	b->add_kv(b, "type", "%N", alert_names, alert);
+	if (ike_sa)
+	{
+		b->begin_section(b, "ike-sa");
+		b->begin_section(b, ike_sa->get_name(ike_sa));
+		list_ike(this, b, ike_sa, time_monotonic(NULL));
+		b->end_section(b);
+		b->end_section(b);
+	}
 
-	this->dispatcher->raise_event(this->dispatcher,
-								  "alert", 0, b->finalize(b));
+	this->dispatcher->raise_event(this->dispatcher, "alert", 0, b->finalize(b));
 
 	return TRUE;
 }
-#endif
 
 METHOD(vici_query_t, destroy, void,
 	private_vici_query_t *this)
@@ -1987,14 +2037,12 @@ vici_query_t *vici_query_create(vici_dispatcher_t *dispatcher)
 	INIT(this,
 		.public = {
 			.listener = {
+				.alert = _alert,
 				.ike_updown = _ike_updown,
 				.ike_rekey = _ike_rekey,
 				.ike_update = _ike_update,
 				.child_updown = _child_updown,
 				.child_rekey = _child_rekey,
-#if defined (USE_CUSTOM_EXT)
-				.alert = _alert,
-#endif
 			},
 			.destroy = _destroy,
 		},

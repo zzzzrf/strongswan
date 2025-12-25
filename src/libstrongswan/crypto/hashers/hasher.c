@@ -32,7 +32,6 @@ ENUM_NEXT(hash_algorithm_names, HASH_SM3, HASH_SM3, HASH_IDENTITY,
 	"HASH_SM3");
 ENUM_NEXT(hash_algorithm_names, HASH_UNKNOWN, HASH_SHA3_512, HASH_SM3,
 	"HASH_UNKNOWN",
-	"HASH_MD2",
 	"HASH_MD4",
 	"HASH_MD5",
 	"HASH_SHA2_224",
@@ -52,7 +51,6 @@ ENUM_NEXT(hash_algorithm_short_names, HASH_SM3, HASH_SM3, HASH_IDENTITY,
 	"sm3");
 ENUM_NEXT(hash_algorithm_short_names, HASH_UNKNOWN, HASH_SHA3_512, HASH_SM3,
 	"unknown",
-	"md2",
 	"md4",
 	"md5",
 	"sha224",
@@ -70,7 +68,6 @@ ENUM_BEGIN(hash_algorithm_short_names_upper, HASH_SHA1, HASH_IDENTITY,
 	"IDENTITY");
 ENUM_NEXT(hash_algorithm_short_names_upper, HASH_UNKNOWN, HASH_SHA3_512, HASH_IDENTITY,
 	"UNKNOWN",
-	"MD2",
 	"MD4",
 	"MD5",
 	"SHA2_224",
@@ -95,8 +92,6 @@ size_t hasher_hash_size(hash_algorithm_t alg)
 			return HASH_SIZE_SHA384;
 		case HASH_SHA512:
 			return HASH_SIZE_SHA512;
-		case HASH_MD2:
-			return HASH_SIZE_MD2;
 		case HASH_MD4:
 			return HASH_SIZE_MD4;
 		case HASH_MD5:
@@ -127,9 +122,6 @@ hash_algorithm_t hasher_algorithm_from_oid(int oid)
 {
 	switch (oid)
 	{
-		case OID_MD2:
-		case OID_MD2_WITH_RSA:
-			return HASH_MD2;
 		case OID_MD5:
 		case OID_MD5_WITH_RSA:
 			return HASH_MD5;
@@ -365,7 +357,6 @@ bool hasher_algorithm_for_ikev2(hash_algorithm_t alg)
 		case HASH_SM3:
 			return TRUE;
 		case HASH_UNKNOWN:
-		case HASH_MD2:
 		case HASH_MD4:
 		case HASH_MD5:
 		case HASH_SHA1:
@@ -388,9 +379,6 @@ int hasher_algorithm_to_oid(hash_algorithm_t alg)
 
 	switch (alg)
 	{
-		case HASH_MD2:
-			oid = OID_MD2;
-			break;
 		case HASH_MD5:
 			oid = OID_MD5;
 			break;
@@ -437,8 +425,6 @@ int hasher_signature_algorithm_to_oid(hash_algorithm_t alg, key_type_t key)
 		case KEY_RSA:
 			switch (alg)
 			{
-				case HASH_MD2:
-					return OID_MD2_WITH_RSA;
 				case HASH_MD5:
 					return OID_MD5_WITH_RSA;
 				case HASH_SHA1:

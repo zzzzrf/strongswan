@@ -1,13 +1,16 @@
-# 2.5.2 #
+# 2.6.2 #
 
-- Increased target SDK to Android 14
-- Due to a bug in Android 14, a new permission is necessary to start a profile in the background from the status tile
-- Fix crash when listing installed apps for new profiles
+- Fix edge-to-edge layout issues with settings and app selection
 
-# 2.5.1 #
+# 2.6.1 #
 
-- Fix for existing shortcuts and automation via Intents
+- Update OpenSSL to support ML-KEM (requires explicit configuration in proposals)
+- Fix vulnerability in eap-mschapv2 plugin
+- Fix filename when exporting the log
 
-# 2.5.0 #
+# 2.6.0 #
 
-- Support for managed configurations via enterprise mobility management (EMM)
+- Allow preselecting a user certificate via alias in managed profiles
+- Allow selecting a user certificate for managed profiles
+- Fix reading split-tunneling settings in managed profiles
+- Adapt to edge-to-edge display

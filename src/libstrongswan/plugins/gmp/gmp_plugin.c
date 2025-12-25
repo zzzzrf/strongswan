@@ -76,6 +76,7 @@ METHOD(plugin_t, get_features, int,
 		PLUGIN_REGISTER(PRIVKEY_GEN, gmp_rsa_private_key_gen, FALSE),
 			PLUGIN_PROVIDE(PRIVKEY_GEN, KEY_RSA),
 				PLUGIN_DEPENDS(RNG, RNG_TRUE),
+				PLUGIN_DEPENDS(DRBG, DRBG_HMAC_SHA512),
 		PLUGIN_REGISTER(PUBKEY, gmp_rsa_public_key_load, TRUE),
 			PLUGIN_PROVIDE(PUBKEY, KEY_RSA),
 		/* signature schemes, private */
@@ -157,7 +158,7 @@ METHOD(plugin_t, destroy, void,
 /*
  * see header file
  */
-plugin_t *gmp_plugin_create()
+PLUGIN_DEFINE(gmp)
 {
 	private_gmp_plugin_t *this;
 

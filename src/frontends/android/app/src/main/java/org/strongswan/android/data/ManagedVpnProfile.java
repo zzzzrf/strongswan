@@ -38,6 +38,7 @@ public class ManagedVpnProfile extends VpnProfile
 	private static final String KEY_REMOTE_REVOCATION_CRL_FLAG = "remote_revocation_crl";
 	private static final String KEY_REMOTE_REVOCATION_OCSP_FLAG = "remote_revocation_ocsp";
 	private static final String KEY_REMOTE_REVOCATION_STRICT_FLAG = "remote_revocation_strict";
+	private static final String KEY_LOCAL_USER_CERTIFICATE_ALIAS = "user_certificate_alias";
 	private static final String KEY_LOCAL_RSA_PSS_FLAG = "local_rsa_pss";
 
 	private static final String KEY_SPLIT_TUNNELLING_BLOCK_IPV4_FLAG = "split_tunnelling_block_ipv4";
@@ -68,9 +69,9 @@ public class ManagedVpnProfile extends VpnProfile
 
 		setMTU(getInt(bundle, VpnProfileDataSource.KEY_MTU, Constants.MTU_MIN, Constants.MTU_MAX));
 		setNATKeepAlive(getInt(bundle, VpnProfileDataSource.KEY_NAT_KEEPALIVE, Constants.NAT_KEEPALIVE_MIN, Constants.NAT_KEEPALIVE_MAX));
-		setIkeProposal(bundle.getString(VpnProfileDataSource.KEY_IKE_PROPOSAL));
-		setEspProposal(bundle.getString(VpnProfileDataSource.KEY_ESP_PROPOSAL));
-		setDnsServers(bundle.getString(VpnProfileDataSource.KEY_DNS_SERVERS));
+		setIkeProposal(getString(bundle, VpnProfileDataSource.KEY_IKE_PROPOSAL));
+		setEspProposal(getString(bundle, VpnProfileDataSource.KEY_ESP_PROPOSAL));
+		setDnsServers(getString(bundle, VpnProfileDataSource.KEY_DNS_SERVERS));
 		flags = addPositiveFlag(flags, bundle, KEY_TRANSPORT_IPV6_FLAG, VpnProfile.FLAGS_IPv6_TRANSPORT);
 
 		final Bundle splitTunneling = bundle.getBundle(VpnProfileDataSource.KEY_SPLIT_TUNNELING);
@@ -79,8 +80,16 @@ public class ManagedVpnProfile extends VpnProfile
 			splitFlags = addPositiveFlag(splitFlags, splitTunneling, KEY_SPLIT_TUNNELLING_BLOCK_IPV4_FLAG, VpnProfile.SPLIT_TUNNELING_BLOCK_IPV4);
 			splitFlags = addPositiveFlag(splitFlags, splitTunneling, KEY_SPLIT_TUNNELLING_BLOCK_IPV6_FLAG, VpnProfile.SPLIT_TUNNELING_BLOCK_IPV6);
 
-			setExcludedSubnets(splitTunneling.getString(VpnProfileDataSource.KEY_EXCLUDED_SUBNETS));
-			setIncludedSubnets(splitTunneling.getString(VpnProfileDataSource.KEY_INCLUDED_SUBNETS));
+			setExcludedSubnets(getString(splitTunneling, VpnProfileDataSource.KEY_EXCLUDED_SUBNETS));
+			setIncludedSubnets(getString(splitTunneling, VpnProfileDataSource.KEY_INCLUDED_SUBNETS));
+		}
+
+		final Bundle proxyServer = bundle.getBundle(VpnProfileDataSource.KEY_PROXY_SERVER);
+		if (proxyServer != null)
+		{
+			setProxyHost(getString(proxyServer, VpnProfileDataSource.KEY_PROXY_HOST));
+			setProxyPort(getInt(proxyServer, VpnProfileDataSource.KEY_PROXY_PORT, 1, 65_535));
+			setProxyExclusions(getString(proxyServer, VpnProfileDataSource.KEY_PROXY_EXCLUSIONS));
 		}
 
 		setSplitTunneling(splitFlags);
@@ -110,7 +119,7 @@ public class ManagedVpnProfile extends VpnProfile
 
 		setGateway(remote.getString(VpnProfileDataSource.KEY_GATEWAY));
 		setPort(getInt(remote, VpnProfileDataSource.KEY_PORT, 1, 65_535));
-		setRemoteId(remote.getString(VpnProfileDataSource.KEY_REMOTE_ID));
+		setRemoteId(getString(remote, VpnProfileDataSource.KEY_REMOTE_ID));
 
 		final String certificateData = remote.getString(VpnProfileDataSource.KEY_CERTIFICATE);
 		if (!TextUtils.isEmpty(certificateData))
@@ -133,8 +142,9 @@ public class ManagedVpnProfile extends VpnProfile
 			return flags;
 		}
 
-		setLocalId(local.getString(VpnProfileDataSource.KEY_LOCAL_ID));
-		setUsername(local.getString(VpnProfileDataSource.KEY_USERNAME));
+		setLocalId(getString(local, VpnProfileDataSource.KEY_LOCAL_ID));
+		setUsername(getString(local, VpnProfileDataSource.KEY_USERNAME));
+		setPassword(getString(local, VpnProfileDataSource.KEY_PASSWORD));
 
 		final String userCertificateData = local.getString(VpnProfileDataSource.KEY_USER_CERTIFICATE);
 		final String userCertificatePassword = local.getString(VpnProfileDataSource.KEY_USER_CERTIFICATE_PASSWORD, "");
@@ -142,6 +152,10 @@ public class ManagedVpnProfile extends VpnProfile
 		{
 			userCertificate = new ManagedUserCertificate(uuid.toString(), userCertificateData, userCertificatePassword);
 			setUserCertificateAlias(userCertificate.getAlias());
+		}
+		else
+		{
+			setUserCertificateAlias(getString(local, KEY_LOCAL_USER_CERTIFICATE_ALIAS));
 		}
 
 		flags = addPositiveFlag(flags, local, KEY_LOCAL_RSA_PSS_FLAG, VpnProfile.FLAGS_RSA_PSS);
@@ -152,6 +166,12 @@ public class ManagedVpnProfile extends VpnProfile
 	{
 		final int value = bundle.getInt(key);
 		return value < min || value > max ? null : value;
+	}
+
+	private static String getString(final Bundle bundle, final String key)
+	{
+		final String value = bundle.getString(key);
+		return TextUtils.isEmpty(value) ? null : value;
 	}
 
 	private static int addPositiveFlag(int flags, Bundle bundle, String key, int flag)

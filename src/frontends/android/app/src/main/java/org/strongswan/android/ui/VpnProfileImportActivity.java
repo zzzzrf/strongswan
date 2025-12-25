@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 Tobias Brunner
+ * Copyright (C) 2016-2025 Tobias Brunner
  *
  * Copyright (C) secunet Security Networks AG
  *
@@ -21,6 +21,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.security.KeyChain;
 import android.security.KeyChainAliasCallback;
@@ -77,6 +78,7 @@ import javax.net.ssl.SSLHandshakeException;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.WindowCompat;
 import androidx.loader.app.LoaderManager;
 import androidx.loader.content.AsyncTaskLoader;
 import androidx.loader.content.Loader;
@@ -98,6 +100,7 @@ public class VpnProfileImportActivity extends AppCompatActivity
 	private boolean mHideImport;
 	private androidx.core.widget.ContentLoadingProgressBar mProgressBar;
 	private TextView mExistsWarning;
+	private TextView mSharedSecretWarning;
 	private ViewGroup mBasicDataGroup;
 	private TextView mName;
 	private TextView mGateway;
@@ -139,6 +142,19 @@ public class VpnProfileImportActivity extends AppCompatActivity
 	{
 		@Override
 		public Loader<ProfileLoadResult> onCreateLoader(int id, Bundle args)
+		{
+			if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU)
+			{
+				return createCompat(args);
+			}
+			else
+			{
+				return new ProfileLoader(VpnProfileImportActivity.this, args.getParcelable(PROFILE_URI, Uri.class));
+			}
+		}
+
+		@SuppressWarnings("deprecation")
+		public Loader<ProfileLoadResult> createCompat(Bundle args)
 		{
 			return new ProfileLoader(VpnProfileImportActivity.this, args.getParcelable(PROFILE_URI));
 		}
@@ -189,9 +205,11 @@ public class VpnProfileImportActivity extends AppCompatActivity
 		mDataSource.open();
 
 		setContentView(R.layout.profile_import_view);
+		WindowCompat.enableEdgeToEdge(getWindow());
 
 		mProgressBar = findViewById(R.id.progress_bar);
 		mExistsWarning = findViewById(R.id.exists_warning);
+		mSharedSecretWarning = findViewById(R.id.shared_secret_warning);
 		mBasicDataGroup = findViewById(R.id.basic_data_group);
 		mName = findViewById(R.id.name);
 		mGateway = findViewById(R.id.gateway);
@@ -210,6 +228,7 @@ public class VpnProfileImportActivity extends AppCompatActivity
 		mRemoteCert = findViewById(R.id.remote_certificate);
 
 		mExistsWarning.setVisibility(View.GONE);
+		mSharedSecretWarning.setVisibility(View.GONE);
 		mBasicDataGroup.setVisibility(View.GONE);
 		mUsernamePassword.setVisibility(View.GONE);
 		mUserCertificate.setVisibility(View.GONE);
@@ -386,9 +405,15 @@ public class VpnProfileImportActivity extends AppCompatActivity
 		if (mProfile.getVpnType().has(VpnTypeFeature.USER_PASS))
 		{
 			mUsername.setText(mProfile.getUsername());
-			if (mProfile.getUsername() != null && !mProfile.getUsername().isEmpty())
+			if (!TextUtils.isEmpty(mProfile.getUsername()))
 			{
 				mUsername.setEnabled(false);
+			}
+			mPassword.setText(mProfile.getPassword());
+			if (!TextUtils.isEmpty(mProfile.getPassword()))
+			{
+				mPassword.setEnabled(false);
+				mSharedSecretWarning.setVisibility(View.VISIBLE);
 			}
 		}
 
@@ -509,6 +534,7 @@ public class VpnProfileImportActivity extends AppCompatActivity
 			if (type.has(VpnTypeFeature.USER_PASS))
 			{
 				profile.setUsername(local.optString("eap_id", null));
+				profile.setPassword(local.optString("shared_secret", null));
 			}
 
 			if (type.has(VpnTypeFeature.CERTIFICATE))
@@ -532,6 +558,14 @@ public class VpnProfileImportActivity extends AppCompatActivity
 			flags |= VpnProfile.FLAGS_IPv6_TRANSPORT;
 		}
 
+		JSONObject proxy = obj.optJSONObject("proxy");
+		if (proxy != null)
+		{
+			profile.setProxyHost(proxy.optString("host"));
+			profile.setProxyPort(getInteger(proxy, "port", 1, 65535));
+			profile.setProxyExclusions(getFlatStringList(proxy, "exclusions"));
+		}
+
 		JSONObject split = obj.optJSONObject("split-tunneling");
 		if (split != null)
 		{
@@ -545,8 +579,8 @@ public class VpnProfileImportActivity extends AppCompatActivity
 			profile.setSplitTunneling(st == 0 ? null : st);
 		}
 		/* only one of these can be set, prefer specific apps */
-		String selectedApps = getApps(obj.optJSONArray("apps"));
-		String excludedApps = getApps(obj.optJSONArray("excluded-apps"));
+		String selectedApps = getFlatStringList(obj, "apps");
+		String excludedApps = getFlatStringList(obj, "excluded-apps");
 		if (!TextUtils.isEmpty(selectedApps))
 		{
 			profile.setSelectedApps(selectedApps);
@@ -582,24 +616,8 @@ public class VpnProfileImportActivity extends AppCompatActivity
 
 	private String getSubnets(JSONObject split, String key) throws JSONException
 	{
-		ArrayList<String> subnets = new ArrayList<>();
-		JSONArray arr = split.optJSONArray(key);
-		if (arr != null)
-		{
-			for (int i = 0; i < arr.length(); i++)
-			{	/* replace all spaces, e.g. in "192.168.1.1 - 192.168.1.10" */
-				subnets.add(arr.getString(i).replace(" ", ""));
-			}
-		}
-		else
-		{
-			String value = split.optString(key, null);
-			if (!TextUtils.isEmpty(value))
-			{
-				subnets.add(value);
-			}
-		}
-		if (subnets.size() > 0)
+		ArrayList<String> subnets = getStringList(split, key);
+		if (!subnets.isEmpty())
 		{
 			String joined = TextUtils.join(" ", subnets);
 			IPRangeSet ranges = IPRangeSet.fromString(joined);
@@ -615,25 +633,8 @@ public class VpnProfileImportActivity extends AppCompatActivity
 
 	private String getAddressList(JSONObject obj, String key) throws JSONException
 	{
-		ArrayList<String> addrs = new ArrayList<>();
-		JSONArray arr = obj.optJSONArray(key);
-		if (arr != null)
-		{
-			for (int i = 0; i < arr.length(); i++)
-			{
-				String addr = arr.getString(i).replace(" ", "");
-				addrs.add(addr);
-			}
-		}
-		else
-		{
-			String value = obj.optString(key, null);
-			if (!TextUtils.isEmpty(value))
-			{
-				Collections.addAll(addrs, value.split("\\s+"));
-			}
-		}
-		if (addrs.size() > 0)
+		ArrayList<String> addrs = getStringList(obj, key);
+		if (!addrs.isEmpty())
 		{
 			for (String addr : addrs)
 			{
@@ -651,17 +652,39 @@ public class VpnProfileImportActivity extends AppCompatActivity
 		return null;
 	}
 
-	private String getApps(JSONArray arr) throws JSONException
+	private String getFlatStringList(JSONObject obj, String key) throws JSONException
 	{
-		ArrayList<String> apps = new ArrayList<>();
+		ArrayList<String> list = getStringList(obj, key);
+		if (!list.isEmpty())
+		{
+			return TextUtils.join(" ", list);
+		}
+		return null;
+	}
+
+	/**
+	 * Return a list of strings, either retrieved from an array or from a space-separated string.
+	 */
+	private ArrayList<String> getStringList(JSONObject obj, String key) throws JSONException
+	{
+		ArrayList<String> list = new ArrayList<>();
+		JSONArray arr = obj.optJSONArray(key);
 		if (arr != null)
 		{
 			for (int i = 0; i < arr.length(); i++)
-			{
-				apps.add(arr.getString(i));
+			{	/* replace all spaces, including e.g. in "192.168.1.1 - 192.168.1.10" */
+				list.add(arr.getString(i).replace(" ", ""));
 			}
 		}
-		return TextUtils.join(" ", apps);
+		else
+		{
+			String value = obj.optString(key, null);
+			if (!TextUtils.isEmpty(value))
+			{
+				Collections.addAll(list, value.split("\\s+"));
+			}
+		}
+		return list;
 	}
 
 	/**

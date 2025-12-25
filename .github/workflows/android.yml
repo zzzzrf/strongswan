@@ -2,6 +2,10 @@ name: Android
 
 on: [push, pull_request]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CCACHE_BASEDIR: ${{ github.workspace }}
   CCACHE_COMPRESS: true
@@ -18,7 +22,7 @@ jobs:
       - id: skip-check
         uses: fkirc/skip-duplicate-actions@master
         with:
-          concurrent_skipping: 'same_content'
+          concurrent_skipping: 'same_content_newer'
 
   android:
     needs: pre-check
@@ -36,7 +40,7 @@ jobs:
         run: |
           NDK_VERSION=$(grep "ndkVersion" src/frontends/android/app/build.gradle | sed -e 's/.*"\(.*\)"/\1/')
           echo Using NDK ${NDK_VERSION}
-          yes | sudo ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --install "ndk;${NDK_VERSION}"
+          yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --install "ndk;${NDK_VERSION}"
           echo "ANDROID_NDK_ROOT=${ANDROID_HOME}/ndk/${NDK_VERSION}" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v4
         with:

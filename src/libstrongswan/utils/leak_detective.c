@@ -563,16 +563,6 @@ static char *whitelist[] = {
 	"xmlInitParserCtxt",
 	/* libcurl */
 	"Curl_client_write",
-	/* libsoup */
-	"soup_add_timeout",
-	"soup_headers_parse_response",
-	"soup_message_headers_append",
-	"soup_message_headers_clear",
-	"soup_message_headers_get_list",
-	"soup_message_headers_get_one",
-	"soup_session_abort",
-	"soup_session_get_type",
-	"soup_session_remove_feature",
 	/* libldap */
 	"ldap_int_initialize",
 	/* ClearSilver */
@@ -616,6 +606,7 @@ static char *whitelist[] = {
 	"EVP_ASYM_CIPHER_fetch",
 	"EVP_CIPHER_fetch",
 	"EVP_KDF_fetch",
+	"EVP_KEM_fetch",
 	"EVP_KEYEXCH_fetch",
 	"EVP_KEYMGMT_do_all_provided",
 	"EVP_KEYMGMT_fetch",
@@ -626,9 +617,13 @@ static char *whitelist[] = {
 	"OSSL_DECODER_CTX_new_for_pkey",
 	"OSSL_ENCODER_do_all_provided",
 	"OSSL_PROVIDER_try_load",
+	"OSSL_PROVIDER_try_load_ex",
 	"OSSL_PROVIDER_load",
 	"RAND_get0_private",
 	"RAND_get0_public",
+	"RAND_priv_bytes",
+	"RAND_priv_bytes_ex",
+	"RAND_bytes_ex",
 	/* We get this via libcurl and OpenSSL 1.1.1 */
 	"CRYPTO_get_ex_new_index",
 	/* OpenSSL libssl */
@@ -668,12 +663,10 @@ static char *whitelist[] = {
 	"TNC_IMC_NotifyConnectionChange",
 	"TNC_IMV_NotifyConnectionChange",
 	/* Botan */
-	"botan_public_key_load",
 	"botan_privkey_create",
-	"botan_privkey_load_ecdh",
-	"botan_privkey_load",
 	"botan_privkey_load_rsa_pkcs1",
-	"botan_kdf",
+	"botan_privkey_load",
+	"botan_private_key_load",
 	/* C++ due to Botan */
 	"__cxa_get_globals",
 	"__cxa_thread_atexit",

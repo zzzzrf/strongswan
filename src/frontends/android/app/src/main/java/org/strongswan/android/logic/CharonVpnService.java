@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2018 Tobias Brunner
+ * Copyright (C) 2012-2025 Tobias Brunner
  * Copyright (C) 2012 Giuliano Grassi
  * Copyright (C) 2012 Ralf Sager
  *
@@ -30,6 +30,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.net.ProxyInfo;
 import android.net.VpnService;
 import android.os.Build;
 import android.os.Bundle;
@@ -72,6 +73,8 @@ import java.security.PrivateKey;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.SortedSet;
@@ -399,9 +402,22 @@ public class CharonVpnService extends VpnService implements Runnable, VpnStateSe
 			public void run()
 			{
 				mShowNotification = false;
-				stopForeground(true);
+				if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N)
+				{
+					stopForegroundCompat();
+				}
+				else
+				{
+					stopForeground(STOP_FOREGROUND_REMOVE);
+				}
 			}
 		});
+	}
+
+	@SuppressWarnings("deprecation")
+	private void stopForegroundCompat()
+	{
+		stopForeground(true);
 	}
 
 	/**
@@ -950,7 +966,6 @@ public class CharonVpnService extends VpnService implements Runnable, VpnStateSe
 			return fd != null ? fd.detachFd() : -1;
 		}
 
-		@TargetApi(Build.VERSION_CODES.LOLLIPOP)
 		public synchronized void establishBlocking()
 		{
 			/* just choose some arbitrary values to block all traffic (except for what's configured in the profile) */
@@ -1103,6 +1118,7 @@ public class CharonVpnService extends VpnService implements Runnable, VpnStateSe
 		private final List<InetAddress> mDnsServers = new ArrayList<>();
 		private int mMtu;
 		private boolean mIPv4Seen, mIPv6Seen, mDnsServersConfigured;
+		private ProxyInfo mProxyServer;
 
 		public BuilderCache(VpnProfile profile)
 		{
@@ -1154,6 +1170,17 @@ public class CharonVpnService extends VpnService implements Runnable, VpnStateSe
 						e.printStackTrace();
 					}
 				}
+			}
+
+			if (profile.getProxyHost() != null)
+			{
+				int port = profile.getProxyPort() != null ? profile.getProxyPort() : Constants.PROXY_PORT_DEFAULT;
+				List<String> exclusions = new ArrayList<>();
+				if (profile.getProxyExclusions() != null)
+				{
+					Collections.addAll(exclusions, profile.getProxyExclusions().split("\\s+"));
+				}
+				mProxyServer = ProxyInfo.buildDirectProxy(profile.getProxyHost(), port, exclusions);
 			}
 
 			/* set a default MTU, will be set by the daemon for regular interfaces */
@@ -1236,7 +1263,7 @@ public class CharonVpnService extends VpnService implements Runnable, VpnStateSe
 			}
 		}
 
-		public void applyData(VpnService.Builder builder)
+		public void applyData(Builder builder)
 		{
 			for (IPRange address : mAddresses)
 			{
@@ -1361,6 +1388,10 @@ public class CharonVpnService extends VpnService implements Runnable, VpnStateSe
 					default:
 						break;
 				}
+			}
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && mProxyServer != null)
+			{
+				builder.setHttpProxy(mProxyServer);
 			}
 			builder.setMtu(mMtu);
 		}
