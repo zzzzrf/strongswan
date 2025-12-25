@@ -329,7 +329,6 @@ integrity_algorithm_t hasher_algorithm_to_integrity(hash_algorithm_t alg,
 			break;
 		case HASH_SM3:
 			return AUTH_HMAC_SM3;
-		case HASH_MD2:
 		case HASH_MD4:
 		case HASH_SHA224:
 		case HASH_SHA3_224:
