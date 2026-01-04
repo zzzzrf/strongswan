@@ -73,7 +73,7 @@ METHOD(plugin_t, destroy, void,
 /*
  * see header file
  */
-plugin_t *gmssl_plugin_create()
+PLUGIN_DEFINE(gmssl)
 {
 	private_gmssl_plugin_t *this;
 
