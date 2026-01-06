@@ -314,6 +314,7 @@ ARG_ENABL_SET([nm],             [enable NetworkManager backend.])
 ARG_DISBL_SET([pki],            [disable pki certificate utility.])
 ARG_DISBL_SET([scripts],        [disable additional utilities (found in directory scripts).])
 ARG_ENABL_SET([svc],            [enable charon Windows service.])
+ARG_ENABL_SET([rcios],          [enable systemd specific IKE daemon charon-rcios.])
 ARG_ENABL_SET([systemd],        [enable systemd specific IKE daemon charon-systemd.])
 ARG_DISBL_SET([swanctl],        [disable swanctl configuration and control tool.])
 ARG_ENABL_SET([tkm],            [enable Trusted Key Manager support.])
@@ -1932,6 +1933,7 @@ AM_CONDITIONAL(USE_CMD, test x$cmd = xtrue)
 AM_CONDITIONAL(USE_AIKGEN, test x$aikgen = xtrue)
 AM_CONDITIONAL(USE_SWANCTL, test x$swanctl = xtrue)
 AM_CONDITIONAL(USE_SVC, test x$svc = xtrue)
+AM_CONDITIONAL(USE_RCIOS, test x$rcios = xtrue)
 AM_CONDITIONAL(USE_SYSTEMD, test x$systemd = xtrue)
 AM_CONDITIONAL(USE_LEGACY_SYSTEMD, test -n "$systemdsystemunitdir" -a "x$systemdsystemunitdir" != xno)
 AM_CONDITIONAL(USE_CERT_ENROLL, test x$cert_enroll = xtrue)
@@ -1980,6 +1982,9 @@ if test x$custom_ext = xtrue; then
 fi
 if test x$custom_ext_ATTR_IKEv1_SM = xtrue; then
 	AC_DEFINE([USE_CUSTOM_EXT_ATTR_IKEV1_SM], [], [build code for custom extension attr ikev1 sm])
+fi
+if test x$rcios = xtrue; then
+	AC_DEFINE([USE_RCIOS], [], [build code for rcios extension])
 fi
 
 # ====================================================
@@ -2116,6 +2121,7 @@ AC_CONFIG_FILES([
 	src/charon-cmd/Makefile
 	src/charon-svc/Makefile
 	src/charon-systemd/Makefile
+	src/charon-rcios/Makefile
 	src/libcharon/Makefile
 	src/libcharon/plugins/eap_aka/Makefile
 	src/libcharon/plugins/eap_aka_3gpp/Makefile
