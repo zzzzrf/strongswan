@@ -108,7 +108,7 @@ void rcios_client_set_gateway(u_int mod_id, char *uri, rcios_client_rpc_cb cb)
 		.data = chunk_from_str(RC_CMD_SET_GATEWAY_PAYLOAD),
 		.cb = cb,
 	);
-	entry->stream = ((private_rcios_client_t *)entry->client)->stream,
+	entry->stream = ((private_rcios_client_t *)entry->client)->stream;
 
 	entry->client->send(entry->client, entry->cmd_code, entry->data);
 
@@ -125,7 +125,7 @@ void rcios_client_dump_gateway(u_int mod_id, char *uri, rcios_client_rpc_cb cb)
 		.data = chunk_from_str(RC_CMD_SET_GATEWAY_PAYLOAD),
 		.cb = cb,
 	);
-	entry->stream = ((private_rcios_client_t *)entry->client)->stream,
+	entry->stream = ((private_rcios_client_t *)entry->client)->stream;
 
 	entry->client->send(entry->client, entry->cmd_code, entry->data);
 

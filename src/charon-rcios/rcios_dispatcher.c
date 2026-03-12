@@ -48,7 +48,6 @@ CALLBACK(inbound, void,
 	uint16_t ret = -1;
 	command_t *cmd;
 	response_data_t *release;
-	bio_reader_t *reader;
 
 	this->mutex->lock(this->mutex);
 	cmd = this->cmds->get(this->cmds, enum_to_name(rcios_ipsecd_cmd_names, cmd_code));
@@ -57,7 +56,6 @@ CALLBACK(inbound, void,
 	this->mutex->unlock(this->mutex);
 
 	// DBG1(DBG_DMN, "recv %N cmd, data : %B", rcios_ipsecd_cmd_names, cmd_code, &data);
-	reader = bio_reader_create(data);
 
 	if (cmd)
 	{
@@ -70,7 +68,8 @@ CALLBACK(inbound, void,
 		array_destroy_function(release->response, (array_callback_t)rcios_dispatcher_do_reply, release);
 		free(release);
 		this->mutex->lock(this->mutex);
-			cmd->uses--;
+		if (--cmd->uses == 0)
+			this->cond->broadcast(this->cond);
 		this->mutex->unlock(this->mutex);
 	}
 	else
@@ -78,7 +77,6 @@ CALLBACK(inbound, void,
 		DBG1(DBG_DMN, "unknown %d cmd_code", cmd_code);
 	}
 	this->socket->send(this->socket, id, ret, chunk_empty);
-	reader->destroy(reader);
 }
 
 CALLBACK(connect_, void,
