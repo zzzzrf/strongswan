@@ -1,0 +1,86 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-O0",
+      "-g",
+      "-fpic",
+      "-Wno-error=incompatible-pointer-types",
+      "-include",
+      "/home/zrf/git/ipsec/build/config.h",
+      "-I/home/zrf/git/ipsec/src/libstrongswan",
+      "-I/home/zrf/git/ipsec/src/libcharon",
+      "-I/home/zrf/git/vpp/build-root/install-vpp_debug-native/vpp/include",
+      "-c",
+      "-o",
+      "kernel_vpp_ipsec.o",
+      "kernel_vpp_ipsec.c"
+    ],
+    "directory": "/home/zrf/git/ipsec/src/libcharon/plugins/vpp_sswan",
+    "file": "/home/zrf/git/ipsec/src/libcharon/plugins/vpp_sswan/kernel_vpp_ipsec.c",
+    "output": "/home/zrf/git/ipsec/src/libcharon/plugins/vpp_sswan/kernel_vpp_ipsec.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-O0",
+      "-g",
+      "-fpic",
+      "-Wno-error=incompatible-pointer-types",
+      "-include",
+      "/home/zrf/git/ipsec/build/config.h",
+      "-I/home/zrf/git/ipsec/src/libstrongswan",
+      "-I/home/zrf/git/ipsec/src/libcharon",
+      "-I/home/zrf/git/vpp/build-root/install-vpp_debug-native/vpp/include",
+      "-c",
+      "-o",
+      "kernel_vpp_net.o",
+      "kernel_vpp_net.c"
+    ],
+    "directory": "/home/zrf/git/ipsec/src/libcharon/plugins/vpp_sswan",
+    "file": "/home/zrf/git/ipsec/src/libcharon/plugins/vpp_sswan/kernel_vpp_net.c",
+    "output": "/home/zrf/git/ipsec/src/libcharon/plugins/vpp_sswan/kernel_vpp_net.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-O0",
+      "-g",
+      "-fpic",
+      "-Wno-error=incompatible-pointer-types",
+      "-include",
+      "/home/zrf/git/ipsec/build/config.h",
+      "-I/home/zrf/git/ipsec/src/libstrongswan",
+      "-I/home/zrf/git/ipsec/src/libcharon",
+      "-I/home/zrf/git/vpp/build-root/install-vpp_debug-native/vpp/include",
+      "-c",
+      "-o",
+      "kernel_vpp_plugin.o",
+      "kernel_vpp_plugin.c"
+    ],
+    "directory": "/home/zrf/git/ipsec/src/libcharon/plugins/vpp_sswan",
+    "file": "/home/zrf/git/ipsec/src/libcharon/plugins/vpp_sswan/kernel_vpp_plugin.c",
+    "output": "/home/zrf/git/ipsec/src/libcharon/plugins/vpp_sswan/kernel_vpp_plugin.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-O0",
+      "-g",
+      "-fpic",
+      "-Wno-error=incompatible-pointer-types",
+      "-include",
+      "/home/zrf/git/ipsec/build/config.h",
+      "-I/home/zrf/git/ipsec/src/libstrongswan",
+      "-I/home/zrf/git/ipsec/src/libcharon",
+      "-I/home/zrf/git/vpp/build-root/install-vpp_debug-native/vpp/include",
+      "-c",
+      "-o",
+      "kernel_vpp_shared.o",
+      "kernel_vpp_shared.c"
+    ],
+    "directory": "/home/zrf/git/ipsec/src/libcharon/plugins/vpp_sswan",
+    "file": "/home/zrf/git/ipsec/src/libcharon/plugins/vpp_sswan/kernel_vpp_shared.c",
+    "output": "/home/zrf/git/ipsec/src/libcharon/plugins/vpp_sswan/kernel_vpp_shared.o"
+  }
+]
