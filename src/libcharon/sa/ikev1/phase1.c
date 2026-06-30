@@ -270,10 +270,19 @@ METHOD(phase1_t, derive_keys, bool,
 			break;
 	}
 
+#ifndef USE_QKD
+	if (!this->keymat->derive_ike_keys(this->keymat,
+		this->ike_sa->get_proposal(this->ike_sa),
+		this->dh, this->dh_value, this->nonce_i, this->nonce_r,
+		this->ike_sa->get_id(this->ike_sa), method, shared_key))
+#else
+	chunk_t QK = chunk_empty;
+	QK = this->ike_sa->get_qkd_key(this->ike_sa);
 	if (!this->keymat->derive_ike_keys(this->keymat,
 						this->ike_sa->get_proposal(this->ike_sa),
 						this->dh, this->dh_value, this->nonce_i, this->nonce_r,
-						this->ike_sa->get_id(this->ike_sa), method, shared_key))
+						this->ike_sa->get_id(this->ike_sa), method, shared_key, QK, QKD_MODE_PRF))
+#endif
 	{
 		DESTROY_IF(shared_key);
 		DBG1(DBG_IKE, "key derivation for %N failed", auth_method_names, method);

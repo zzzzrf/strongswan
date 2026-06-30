@@ -539,10 +539,84 @@ METHOD(keymat_v1_t, derive_ikesm_keys, bool,
 }
 #endif
 
+#ifdef USE_QKD
+static bool fuse_skeyid_qkd_prf(uint16_t alg, chunk_t qk, chunk_t *skeyid_x)
+{
+	kdf_t *prf_plus;
+	chunk_t fused = chunk_empty, qk_adj;
+	if (!skeyid_x->len)
+	{
+		return FALSE;
+	}
+	qk_adj = chunk_clone(qk);
+	adjust_keylen(alg, &qk_adj);
+	prf_plus = lib->crypto->create_kdf(lib->crypto, KDF_PRF_PLUS, alg);
+	if (!prf_plus)
+	{
+		chunk_clear(&qk_adj);
+		return FALSE;
+	}
+	if (!prf_plus->set_param(prf_plus, KDF_PARAM_KEY, qk_adj) ||
+		!prf_plus->set_param(prf_plus, KDF_PARAM_SALT, *skeyid_x) ||
+		!prf_plus->allocate_bytes(prf_plus, skeyid_x->len, &fused))
+	{
+		prf_plus->destroy(prf_plus);
+		chunk_clear(&qk_adj);
+		return FALSE;
+	}
+	prf_plus->destroy(prf_plus);
+	chunk_clear(&qk_adj);
+	chunk_clear(skeyid_x);
+	// DBG4(DBG_IKE, "QSKEYID_x (prf+) %B", &fused);
+	*skeyid_x = fused;
+	return TRUE;
+}
+
+static bool fuse_skeyid_qkd_xor(chunk_t qk, chunk_t *skeyid_x)
+{
+	if (!skeyid_x->len)
+	{
+		return FALSE;
+	}
+	if (qk.len < skeyid_x->len)
+	{
+		DBG1(DBG_IKE, "QK too short for XOR fusion (%zu bytes, need %zu)",
+			 qk.len, skeyid_x->len);
+		return FALSE;
+	}
+	memxor(skeyid_x->ptr, qk.ptr, skeyid_x->len);
+	DBG4(DBG_IKE, "QSKEYID_x (xor) %B", skeyid_x);
+	return TRUE;
+}
+
+static bool fuse_skeyid_with_qk(uint16_t alg, qkd_mode_t mode, chunk_t qk,
+								chunk_t *skeyid_x)
+{
+	switch (mode)
+	{
+		case QKD_MODE_IGNORE:
+			return TRUE;
+		case QKD_MODE_PRF:
+			return fuse_skeyid_qkd_prf(alg, qk, skeyid_x);
+		case QKD_MODE_XOR:
+			return fuse_skeyid_qkd_xor(qk, skeyid_x);
+		default:
+			return FALSE;
+	}
+}
+#endif
+
+#ifndef USE_QKD
 METHOD(keymat_v1_t, derive_ike_keys, bool,
 	private_keymat_v1_t *this, proposal_t *proposal, key_exchange_t *dh,
 	chunk_t dh_other, chunk_t nonce_i, chunk_t nonce_r, ike_sa_id_t *id,
 	auth_method_t auth, shared_key_t *shared_key)
+#else
+METHOD(keymat_v1_t, derive_ike_keys, bool,
+	private_keymat_v1_t *this, proposal_t *proposal, key_exchange_t *dh,
+	chunk_t dh_other, chunk_t nonce_i, chunk_t nonce_r, ike_sa_id_t *id,
+	auth_method_t auth, shared_key_t *shared_key, chunk_t QK, qkd_mode_t qkd_mode)
+#endif
 {
 	chunk_t g_xy, g_xi, g_xr, dh_me, spi_i, spi_r, nonces, data, skeyid_e;
 	chunk_t skeyid, ka;
@@ -699,6 +773,22 @@ METHOD(keymat_v1_t, derive_ike_keys, bool,
 		chunk_clear(&skeyid);
 		return FALSE;
 	}
+
+	#ifdef USE_QKD
+	if (qkd_mode != QKD_MODE_IGNORE && QK.len)
+	{
+		DBG4(DBG_IKE, "QK %B", &QK);
+		DBG4(DBG_IKE, "SKEYID_d %B", &this->skeyid_d);
+		DBG4(DBG_IKE, "SKEYID_a %B", &this->skeyid_a);
+		DBG4(DBG_IKE, "SKEYID_e %B", &skeyid_e);
+		fuse_skeyid_with_qk(alg, qkd_mode, QK, &this->skeyid_d);
+		fuse_skeyid_with_qk(alg, qkd_mode, QK, &this->skeyid_a);
+		fuse_skeyid_with_qk(alg, qkd_mode, QK, &skeyid_e);
+		DBG4(DBG_IKE, "QSKEYID_d %B", &this->skeyid_d);
+		DBG4(DBG_IKE, "QSKEYID_a %B", &this->skeyid_a);
+		DBG4(DBG_IKE, "QSKEYID_e %B", &skeyid_e);
+	}
+#endif
 	if (!this->prf_auth->set_key(this->prf_auth, skeyid))
 	{
 		chunk_clear(&skeyid);

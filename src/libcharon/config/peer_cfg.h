@@ -39,6 +39,9 @@ typedef struct peer_cfg_create_t peer_cfg_create_t;
 #include <config/ike_cfg.h>
 #include <config/child_cfg.h>
 #include <credentials/auth_cfg.h>
+#ifdef USE_QKD
+#include <qkd/qkd_types.h>
+#endif
 
 /**
  * Certificate sending policy. This is also used for certificate
@@ -373,6 +376,22 @@ struct peer_cfg_t {
 	identification_t* (*get_peer_id)(peer_cfg_t *this);
 #endif /* ME */
 
+#ifdef USE_QKD
+	/**
+	 * Get the QKD mode to use with this peer.
+	 *
+	 * @return				QKD mode
+	 */
+	qkd_mode_t (*get_qkd_mode)(peer_cfg_t *this);
+
+	/**
+	 * Get the QKD ID to use with this peer.
+	 *
+	 * @return				QKD ID
+	 */
+	identification_t *(*get_qkd_keyid)(peer_cfg_t *this);
+#endif /* USE_QKD */
+
 	/**
 	 * Check if two peer configurations are equal.
 	 *
@@ -415,6 +434,11 @@ enum peer_cfg_option_t {
 
 	/** Require a PPK (otherwise, it's optional) */
 	OPT_PPK_REQUIRED = (1<<3),
+
+#ifdef USE_QKD
+	/** Require QKD (otherwise, it's optional) */
+	OPT_QKD_REQUIRED = (1<<4),
+#endif
 };
 
 /**
@@ -449,6 +473,10 @@ struct peer_cfg_create_t {
 	uint32_t if_id_out;
 	/** Postquantum Preshared Key ID (adopted) */
 	identification_t *ppk_id;
+#ifdef USE_QKD
+	/** QKD mode (PRF or XOR) */
+	qkd_mode_t qkd_mode;
+#endif
 #ifdef ME
 	/** TRUE if this is a mediation connection */
 	bool mediation;

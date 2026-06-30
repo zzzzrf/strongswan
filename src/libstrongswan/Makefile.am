@@ -31,6 +31,7 @@ credentials/sets/auth_cfg_wrapper.c credentials/sets/ocsp_response_wrapper.c \
 credentials/sets/cert_cache.c credentials/sets/mem_cred.c \
 credentials/sets/callback_cred.c credentials/auth_cfg.c database/database.c \
 database/database_factory.c fetcher/fetcher.c fetcher/fetcher_manager.c eap/eap.c \
+qkd/qkd_params.c qkd/qkd_factory.c \
 ipsec/ipsec_types.c \
 metadata/metadata_factory.c metadata/metadata_int.c metadata/metadata_set.c \
 networking/host.c networking/host_resolver.c networking/packet.c \
@@ -111,7 +112,8 @@ credentials/sets/cert_cache.h credentials/sets/mem_cred.h \
 credentials/sets/callback_cred.h credentials/auth_cfg.h \
 credentials/credential_set.h credentials/cert_validator.h \
 database/database.h database/database_factory.h fetcher/fetcher.h \
-fetcher/fetcher_manager.h eap/eap.h pen/pen.h ipsec/ipsec_types.h \
+fetcher/fetcher_manager.h qkd/qkd_types.h qkd/qkd_service.h qkd/qkd_factory.h \
+eap/eap.h pen/pen.h ipsec/ipsec_types.h \
 metadata/metadata.h metadata/metadata_factory.h metadata/metadata_int.h \
 metadata/metadata_set.h \
 networking/host.h networking/host_resolver.h networking/packet.h \
@@ -701,6 +703,13 @@ if USE_TEST_VECTORS
   SUBDIRS += plugins/test_vectors
 if MONOLITHIC
   libstrongswan_la_LIBADD += plugins/test_vectors/libstrongswan-test-vectors.la
+endif
+endif
+
+if USE_QKD
+  SUBDIRS += plugins/qkd
+if MONOLITHIC
+  libstrongswan_la_LIBADD += plugins/qkd/libstrongswan-qkd.la
 endif
 endif
 

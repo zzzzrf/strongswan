@@ -24,6 +24,9 @@
 
 #include <sa/keymat.h>
 #include <sa/authenticator.h>
+#ifdef USE_QKD
+#include <qkd/qkd_types.h>
+#endif
 
 typedef struct keymat_v1_t keymat_v1_t;
 
@@ -36,7 +39,7 @@ struct keymat_v1_t {
 	 * Implements keymat_t.
 	 */
 	keymat_t keymat;
-
+#ifndef USE_QKD
 	/**
 	 * Derive keys for the IKE_SA.
 	 *
@@ -57,6 +60,30 @@ struct keymat_v1_t {
 							key_exchange_t *dh, chunk_t dh_other,
 							chunk_t nonce_i, chunk_t nonce_r, ike_sa_id_t *id,
 							auth_method_t auth, shared_key_t *shared_key);
+#else
+	/**
+	 * Derive keys for the IKE_SA.
+	 *
+	 * These keys are not handed out, but are used by the associated signers,
+	 * crypters and authentication functions.
+	 *
+	 * @param proposal		selected algorithms
+	 * @param dh			diffie hellman key allocated by create_ke()
+	 * @param dh_other		public DH value from other peer
+	 * @param nonce_i		initiators nonce value
+	 * @param nonce_r		responders nonce value
+	 * @param id			IKE_SA identifier
+	 * @param auth			authentication method
+	 * @param shared_key	PSK in case of AUTH_CLASS_PSK, NULL otherwise
+	 * @param qkd_key		QKD key
+	 * @param qkd_mode		QKD mode
+	 * @return				TRUE on success
+	 */
+	 bool (*derive_ike_keys)(keymat_v1_t *this, proposal_t *proposal,
+		key_exchange_t *dh, chunk_t dh_other,
+		chunk_t nonce_i, chunk_t nonce_r, ike_sa_id_t *id,
+		auth_method_t auth, shared_key_t *shared_key, chunk_t qkd_key, qkd_mode_t qkd_mode);
+#endif
 
 #if defined (USE_CUSTOM_EXT) && defined (USE_CUSTOM_EXT_ATTR_IKEV1_SM)
 	bool (*derive_sk)(keymat_v1_t *this, proposal_t *proposal, chunk_t *sk, ssize_t sk_size);

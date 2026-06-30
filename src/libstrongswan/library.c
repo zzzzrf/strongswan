@@ -211,6 +211,9 @@ void library_deinit()
 	this->public.fetcher->destroy(this->public.fetcher);
 	this->public.resolver->destroy(this->public.resolver);
 	this->public.db->destroy(this->public.db);
+#ifdef USE_QKD
+	this->public.qkd->destroy(this->public.qkd);
+#endif
 	this->public.printf_hook->destroy(this->public.printf_hook);
 	this->objects->destroy(this->objects);
 	if (this->public.integrity)
@@ -440,6 +443,9 @@ bool library_init(char *settings, const char *namespace)
 	this->public.fetcher = fetcher_manager_create();
 	this->public.resolver = resolver_manager_create();
 	this->public.db = database_factory_create();
+#ifdef USE_QKD
+	this->public.qkd = qkd_factory_create();
+#endif
 	this->public.processor = processor_create();
 	this->public.scheduler = scheduler_create();
 	this->public.watcher = watcher_create();

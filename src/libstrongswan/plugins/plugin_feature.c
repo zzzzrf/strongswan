@@ -54,6 +54,7 @@ ENUM(plugin_feature_names, FEATURE_NONE, FEATURE_CUSTOM,
 	"DATABASE",
 	"FETCHER",
 	"RESOLVER",
+	"QKD",
 	"CUSTOM",
 );
 
@@ -71,6 +72,7 @@ uint32_t plugin_feature_hash(plugin_feature_t *feature)
 		case FEATURE_NONCE_GEN:
 		case FEATURE_DATABASE:
 		case FEATURE_FETCHER:
+		case FEATURE_QKD:
 		case FEATURE_RESOLVER:
 			/* put these special cases in their (type-specific) buckets */
 			data = chunk_empty;
@@ -211,6 +213,18 @@ bool plugin_feature_matches(plugin_feature_t *a, plugin_feature_t *b)
 			case FEATURE_FETCHER:
 				return a->arg.fetcher == NULL ||
 					   streq(a->arg.fetcher, b->arg.fetcher);
+			case FEATURE_QKD:
+				if (a->arg.qkd.vendor && b->arg.qkd.vendor &&
+					!streq(a->arg.qkd.vendor, b->arg.qkd.vendor))
+				{
+					return FALSE;
+				}
+				if (a->arg.qkd.version && b->arg.qkd.version &&
+					!streq(a->arg.qkd.version, b->arg.qkd.version))
+				{
+					return FALSE;
+				}
+				return TRUE;
 			case FEATURE_CUSTOM:
 				return streq(a->arg.custom, b->arg.custom);
 			case FEATURE_XAUTH_SERVER:
@@ -269,6 +283,23 @@ bool plugin_feature_equals(plugin_feature_t *a, plugin_feature_t *b)
 					return streq(a->arg.fetcher, b->arg.fetcher);
 				}
 				return !a->arg.fetcher && !b->arg.fetcher;
+			case FEATURE_QKD:
+				if (a->arg.qkd.vendor && b->arg.qkd.vendor)
+				{
+					if (!streq(a->arg.qkd.vendor, b->arg.qkd.vendor))
+					{
+						return FALSE;
+					}
+				}
+				else if (a->arg.qkd.vendor || b->arg.qkd.vendor)
+				{
+					return FALSE;
+				}
+				if (a->arg.qkd.version && b->arg.qkd.version)
+				{
+					return streq(a->arg.qkd.version, b->arg.qkd.version);
+				}
+				return !a->arg.qkd.version && !b->arg.qkd.version;
 		}
 	}
 	return FALSE;
@@ -438,6 +469,22 @@ char* plugin_feature_get_string(plugin_feature_t *feature)
 				return str;
 			}
 			break;
+		case FEATURE_QKD:
+			if (feature->arg.qkd.version)
+			{
+				if (asprintf(&str, "%N:%s:%s", plugin_feature_names,
+						feature->type, feature->arg.qkd.vendor,
+						feature->arg.qkd.version) > 0)
+				{
+					return str;
+				}
+			}
+			else if (asprintf(&str, "%N:%s", plugin_feature_names,
+						feature->type, feature->arg.qkd.vendor) > 0)
+			{
+				return str;
+			}
+			break;
 		case FEATURE_CUSTOM:
 			if (asprintf(&str, "%N:%s", plugin_feature_names, feature->type,
 					feature->arg.custom) > 0)
@@ -572,6 +619,10 @@ bool plugin_feature_load(plugin_t *plugin, plugin_feature_t *feature,
 			lib->fetcher->add_fetcher(lib->fetcher, reg->arg.reg.f,
 									  feature->arg.fetcher);
 			break;
+		case FEATURE_QKD:
+			lib->qkd->add_service(lib->qkd, feature->arg.qkd.vendor,
+								  feature->arg.qkd.version, reg->arg.reg.f);
+			break;
 		case FEATURE_RESOLVER:
 			lib->resolver->add_resolver(lib->resolver, reg->arg.reg.f);
 			break;
@@ -664,6 +715,9 @@ bool plugin_feature_unload(plugin_t *plugin, plugin_feature_t *feature,
 			break;
 		case FEATURE_FETCHER:
 			lib->fetcher->remove_fetcher(lib->fetcher, reg->arg.reg.f);
+			break;
+		case FEATURE_QKD:
+			lib->qkd->remove_service(lib->qkd, reg->arg.reg.f);
 			break;
 		case FEATURE_RESOLVER:
 			lib->resolver->remove_resolver(lib->resolver, reg->arg.reg.f);

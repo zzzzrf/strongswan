@@ -149,6 +149,10 @@ encoding/payloads/sk_payload.c encoding/payloads/sk_payload.h \
 encoding/payloads/id_sm_payload.c encoding/payloads/id_sm_payload.h
 endif
 endif
+if USE_QKD
+libcharon_la_SOURCES += \
+sa/ikev1/tasks/isakmp_qkd.c sa/ikev1/tasks/isakmp_qkd.h
+endif
 endif
 
 if USE_SYSLOG

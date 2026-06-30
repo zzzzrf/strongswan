@@ -60,6 +60,7 @@ libstrongswan_tests_SOURCES = tests.h tests.c \
   suites/test_pen.c \
   suites/test_asn1.c \
   suites/test_asn1_parser.c \
+  suites/test_qkd_params.c \
   suites/test_printf.c \
   suites/test_rng_tester.c \
   suites/test_mgf1.c \

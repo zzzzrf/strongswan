@@ -339,6 +339,7 @@ ARG_ENABL_SET([tss-tss2],       [enable the use of the TSS 2.0 Trusted Software 
 ARG_ENABL_SET([cert-enroll-timer],[enable installation of cert-enroll as a systemd timer.])
 ARG_ENABL_SET([custom_ext],		[enable custom extension])
 ARG_ENABL_SET([custom_ext_ATTR_IKEv1_SM],		[enable custom extension for Ikev1 SM])
+ARG_ENABL_SET([qkd],            [enable QKD (Quantum Key Distribution) extension for IKEv1.])
 
 # compile options
 ARG_ENABL_SET([asan],           [enable build with AddressSanitizer (ASan).])
@@ -1623,6 +1624,7 @@ ADD_PLUGIN([gcm],                  [s charon scripts nm cmd])
 ADD_PLUGIN([ml],                   [s charon scripts nm cmd])
 ADD_PLUGIN([drbg],                 [s charon pki scripts nm cmd])
 ADD_PLUGIN([curl],                 [s charon pki scripts nm cmd])
+ADD_PLUGIN([qkd],                  [s charon])
 ADD_PLUGIN([files],                [s charon pki scripts nm cmd])
 ADD_PLUGIN([winhttp],              [s charon pki scripts])
 ADD_PLUGIN([soup],                 [s charon pki scripts nm cmd])
@@ -1943,6 +1945,7 @@ AM_CONDITIONAL(USE_TOX, test "x$TOX" != x)
 AM_CONDITIONAL(USE_PY_TEST, test "x$PY_TEST" != x -a "x$TOX" = x)
 AM_CONDITIONAL(USE_CUSTOM_EXT, test x$custom_ext = xtrue)
 AM_CONDITIONAL(USE_CUSTOM_EXT_ATTR_IKEV1_SM, test x$custom_ext_ATTR_IKEv1_SM = xtrue)
+AM_CONDITIONAL(USE_QKD, test x$qkd = xtrue)
 
 # ========================
 #  set global definitions
@@ -1981,6 +1984,9 @@ fi
 if test x$custom_ext_ATTR_IKEv1_SM = xtrue; then
 	AC_DEFINE([USE_CUSTOM_EXT_ATTR_IKEV1_SM], [], [build code for custom extension attr ikev1 sm])
 fi
+if test x$qkd = xtrue; then
+	AC_DEFINE([USE_QKD], [], [build code for QKD extension])
+fi
 
 # ====================================================
 #  options for enabled modules (see conf/Makefile.am)
@@ -2003,6 +2009,7 @@ AM_COND_IF([USE_NM], [strongswan_options=${strongswan_options}" charon-nm"])
 AM_COND_IF([USE_PKI], [strongswan_options=${strongswan_options}" pki"])
 AM_COND_IF([USE_SWANCTL], [strongswan_options=${strongswan_options}" swanctl"])
 AM_COND_IF([USE_SYSTEMD], [strongswan_options=${strongswan_options}" charon-systemd"])
+AM_COND_IF([USE_QKD], [strongswan_options=${strongswan_options}" qkd"])
 
 AC_SUBST(strongswan_options)
 
@@ -2057,6 +2064,8 @@ AC_CONFIG_FILES([
 	src/libstrongswan/plugins/sshkey/Makefile
 	src/libstrongswan/plugins/pem/Makefile
 	src/libstrongswan/plugins/curl/Makefile
+	src/libstrongswan/plugins/qkd/Makefile
+	src/libstrongswan/plugins/qkd/tests/Makefile
 	src/libstrongswan/plugins/files/Makefile
 	src/libstrongswan/plugins/winhttp/Makefile
 	src/libstrongswan/plugins/unbound/Makefile

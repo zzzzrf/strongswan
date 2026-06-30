@@ -33,6 +33,9 @@
 #include <sa/ikev1/tasks/isakmp_cert_post.h>
 #include <sa/ikev1/tasks/isakmp_delete.h>
 #include <sa/ikev1/tasks/isakmp_dpd.h>
+#ifdef USE_QKD
+#include <sa/ikev1/tasks/isakmp_qkd.h>
+#endif
 
 #include <processing/jobs/retransmit_job.h>
 #include <processing/jobs/delete_ike_sa_job.h>
@@ -467,6 +470,9 @@ METHOD(task_manager_t, initiate, status_t,
 		{
 			case IKE_CREATED:
 				activate_task(this, TASK_ISAKMP_VENDOR);
+#ifdef USE_QKD
+				activate_task(this, TASK_ISAKMP_QKD);
+#endif
 				activate_task(this, TASK_ISAKMP_CERT_PRE);
 				if (activate_task(this, TASK_MAIN_MODE))
 				{
@@ -1005,6 +1011,10 @@ static status_t process_request(private_task_manager_t *this,
 				this->passive_tasks->insert_last(this->passive_tasks, task);
 				task = (task_t *)isakmp_natd_create(this->ike_sa, FALSE);
 				this->passive_tasks->insert_last(this->passive_tasks, task);
+#ifdef USE_QKD
+				task = (task_t *)isakmp_qkd_create(this->ike_sa, FALSE);
+				this->passive_tasks->insert_last(this->passive_tasks, task);
+#endif
 				break;
 			case AGGRESSIVE:
 				task = (task_t *)isakmp_vendor_create(this->ike_sa, FALSE);
@@ -1617,6 +1627,12 @@ METHOD(task_manager_t, queue_ike, void,
 	{
 		queue_task(this, (task_t*)isakmp_natd_create(this->ike_sa, TRUE));
 	}
+#ifdef USE_QKD
+	if (!has_queued(this, TASK_ISAKMP_QKD))
+	{
+		queue_task(this, (task_t*)isakmp_qkd_create(this->ike_sa, TRUE));
+	}
+#endif
 }
 
 METHOD(task_manager_t, queue_ike_reauth, void,

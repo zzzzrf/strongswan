@@ -323,6 +323,10 @@ struct private_ike_sa_t {
 	 * Outbound interface ID
 	 */
 	uint32_t if_id_out;
+
+#ifdef USE_QKD
+	chunk_t qkd_key;
+#endif
 };
 
 /**
@@ -2052,6 +2056,21 @@ METHOD(ike_sa_t, reauth, status_t,
 	return this->task_manager->initiate(this->task_manager);
 }
 
+#ifdef USE_QKD
+METHOD(ike_sa_t, clone_qkd_key, void,
+	private_ike_sa_t *this, chunk_t key)
+{
+	chunk_clear(&this->qkd_key);
+	this->qkd_key = chunk_clone(key);
+}
+
+METHOD(ike_sa_t, get_qkd_key, chunk_t,
+	private_ike_sa_t *this)
+{
+	return this->qkd_key;
+}
+#endif
+
 /**
  * Check if any tasks of a specific type are queued in the given queue.
  */
@@ -3143,6 +3162,9 @@ METHOD(ike_sa_t, destroy, void,
 	chunk_free(&this->connect_id);
 #endif /* ME */
 	free(this->nat_detection_dest.ptr);
+#ifdef USE_QKD
+	chunk_clear(&this->qkd_key);
+#endif
 
 	DESTROY_IF(this->my_host);
 	DESTROY_IF(this->other_host);
@@ -3307,6 +3329,11 @@ ike_sa_t * ike_sa_create(ike_sa_id_t *ike_sa_id, bool initiator,
 	this->public.callback = _callback;
 	this->public.respond = _respond;
 #endif /* ME */
+
+#ifdef USE_QKD
+	this->public.clone_qkd_key = _clone_qkd_key;
+	this->public.get_qkd_key = _get_qkd_key;
+#endif
 
 	if (version == IKEV2)
 	{	/* always supported with IKEv2 */

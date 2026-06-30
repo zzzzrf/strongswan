@@ -1265,6 +1265,22 @@ struct ike_sa_t {
 	 */
 	void (*inherit_post) (ike_sa_t *this, ike_sa_t *other);
 
+#ifdef USE_QKD
+	/**
+	 * Clone the QKD key.
+	 *
+	 * @param key			QKD key to clone
+	 */
+	void (*clone_qkd_key)(ike_sa_t *this, chunk_t key);
+
+	/**
+	 * Get the QKD key.
+	 *
+	 * @return				QKD key
+	 */
+	chunk_t (*get_qkd_key)(ike_sa_t *this);
+#endif
+
 	/**
 	 * Reset the IKE_SA, usable when initiating fails.
 	 *

@@ -110,6 +110,7 @@
 #include "fetcher/fetcher_manager.h"
 #include "resolver/resolver_manager.h"
 #include "database/database_factory.h"
+#include "qkd/qkd_factory.h"
 #include "credentials/credential_factory.h"
 #include "credentials/credential_manager.h"
 #include "credentials/cred_encoding.h"
@@ -216,6 +217,11 @@ struct library_t {
 	 * database construction factory
 	 */
 	database_factory_t *db;
+
+	/**
+	 * QKD platform service factory
+	 */
+	qkd_factory_t *qkd;
 
 	/**
 	 * plugin loading facility

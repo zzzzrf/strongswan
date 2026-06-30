@@ -173,6 +173,11 @@ struct private_peer_cfg_t {
 	 */
 	identification_t *ppk_id;
 
+#ifdef USE_QKD
+	qkd_mode_t qkd_mode;
+	identification_t *qkd_keyid;
+#endif
+
 #ifdef ME
 	/**
 	 * Is this a mediation connection?
@@ -641,6 +646,20 @@ METHOD(peer_cfg_t, get_peer_id, identification_t*,
 }
 #endif /* ME */
 
+#ifdef USE_QKD
+METHOD(peer_cfg_t, get_qkd_mode, qkd_mode_t,
+	private_peer_cfg_t *this)
+{
+	return this->qkd_mode;
+}
+
+METHOD(peer_cfg_t, get_qkd_keyid, identification_t *,
+	private_peer_cfg_t *this)
+{
+	return this->qkd_keyid;
+}
+#endif
+
 /**
  * check auth configs for equality
  */
@@ -836,6 +855,10 @@ peer_cfg_t *peer_cfg_create(char *name, ike_cfg_t *ike_cfg,
 			.get_mediated_by = _get_mediated_by,
 			.get_peer_id = _get_peer_id,
 #endif /* ME */
+#ifdef USE_QKD
+			.get_qkd_mode = _get_qkd_mode,
+			.get_qkd_keyid = _get_qkd_keyid,
+#endif
 		},
 		.name = strdup(name),
 		.options = data->options,
@@ -865,6 +888,9 @@ peer_cfg_t *peer_cfg_create(char *name, ike_cfg_t *ike_cfg,
 		.mediated_by = strdupnull(data->mediated_by),
 		.peer_id = data->peer_id,
 #endif /* ME */
+#ifdef USE_QKD
+		.qkd_mode = data->qkd_mode,
+#endif
 	);
 
 	return &this->public;

@@ -349,6 +349,9 @@ typedef struct {
 	char *mediated_by;
 	identification_t *peer_id;
 #endif /* ME */
+#ifdef USE_QKD
+	qkd_mode_t qkd_mode;
+#endif
 } peer_data_t;
 
 /**
@@ -448,6 +451,10 @@ static void log_peer_data(peer_data_t *data)
 	DBG2(DBG_CFG, "  ocsp = %N", ocsp_policy_names, data->ocsp);
 	DBG2(DBG_CFG, "  ppk_id = %Y",  data->ppk_id);
 	DBG2(DBG_CFG, "  ppk_required = %u", has_opt(data, OPT_PPK_REQUIRED));
+#ifdef USE_QKD
+	DBG2(DBG_CFG, "  qkd_required = %u", has_opt(data, OPT_QKD_REQUIRED));
+	DBG2(DBG_CFG, "  qkd_mode = %u", data->qkd_mode);
+#endif
 	DBG2(DBG_CFG, "  mobike = %u", !has_opt(data, OPT_NO_MOBIKE));
 	DBG2(DBG_CFG, "  aggressive = %u", has_opt(data, OPT_IKEV1_AGGRESSIVE));
 	DBG2(DBG_CFG, "  pull = %u", !has_opt(data, OPT_IKEV1_PUSH_MODE));
@@ -989,6 +996,32 @@ CALLBACK(parse_opt_ppk_req, bool,
 {
 	return parse_peer_option(out, OPT_PPK_REQUIRED, v, TRUE);
 }
+
+#ifdef USE_QKD
+CALLBACK(parse_opt_qkd_req, bool,
+	peer_cfg_option_t *out, chunk_t v)
+{
+	return parse_peer_option(out, OPT_QKD_REQUIRED, v, TRUE);
+}
+
+CALLBACK(parse_qkd_mode, bool,
+	qkd_mode_t *out, chunk_t v)
+{
+	enum_map_t map[] = {
+		{ "no",			QKD_MODE_IGNORE		},
+		{ "prf",		QKD_MODE_PRF		},
+		{ "xor",		QKD_MODE_XOR	},
+	};
+	int m = QKD_MODE_IGNORE;
+
+	if (parse_map(map, countof(map), &m, v))
+	{
+		*out = m;
+		return TRUE;
+	}
+	return FALSE;
+}
+#endif
 
 /**
  * Enable a child_cfg_option_t, the flag controls whether the option is enabled
@@ -2057,6 +2090,10 @@ CALLBACK(peer_kv, bool,
 		{ "mediated_by",	parse_string,		&peer->mediated_by			},
 		{ "mediation_peer",	parse_peer_id,		&peer->peer_id				},
 #endif /* ME */
+#ifdef USE_QKD
+	{ "qkd_required",	parse_opt_qkd_req,	&peer->options				},
+	{ "qkd_mode",	parse_qkd_mode,	&peer->qkd_mode				},
+#endif
 	};
 
 	return parse_rules(rules, countof(rules), name, value,
@@ -2990,6 +3027,9 @@ CALLBACK(config_sn, bool,
 		}
 	}
 #endif /* ME */
+#ifdef USE_QKD
+	cfg.qkd_mode = peer.qkd_mode;
+#endif
 	peer_cfg = peer_cfg_create(name, ike_cfg, &cfg);
 
 	while (peer.local->remove_first(peer.local,
